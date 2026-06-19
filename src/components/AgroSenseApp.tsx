@@ -82,7 +82,7 @@ function dbFincaToFinca(f: DbFinca, potreros: DbPotrero[], animales: DbAnimal[])
 }
 
 export default function AgroSenseApp() {
-  const [tab, setTab]           = useState<Tab>('rfid');
+  const [tab, setTab]           = useState<Tab>('inicio');
   const [user, setUser]         = useState<User>(USERS[0]);
   const [moneda, setMoneda]     = useState<'COP'|'USD'>('COP');
   const [wPeriod, setWPeriod]   = useState<'1M'|'3M'|'6M'>('6M');
@@ -125,7 +125,7 @@ export default function AgroSenseApp() {
     setClientes(cli);
     setGastos(gas);
     setMovimientos(mov);
-    setPendingSync(gas.filter(g => g.pendiente_sync).length + anim.filter(a => false).length);
+    setPendingSync(gas.filter(g => g.pendiente_sync).length);
   }, []);
 
   useEffect(() => {

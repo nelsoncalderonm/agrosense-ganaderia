@@ -81,8 +81,14 @@ export type DbIngreso = {
 // ---------- fetch helpers ----------
 
 export async function getFincas(): Promise<DbFinca[]> {
-  const { data } = await supabase.from('Agrosense_fincas').select('*').eq('activa', true).order('nombre');
-  return data ?? [];
+  // Orden custom: Hacienda La Esperanza primero (sede principal con datos completos)
+  const { data } = await supabase.from('Agrosense_fincas').select('*').eq('activa', true);
+  const sorted = (data ?? []).sort((a, b) => {
+    if (a.nombre === 'Hacienda La Esperanza') return -1;
+    if (b.nombre === 'Hacienda La Esperanza') return 1;
+    return a.nombre.localeCompare(b.nombre, 'es');
+  });
+  return sorted;
 }
 
 export async function getPotreros(finca_id: string): Promise<DbPotrero[]> {
