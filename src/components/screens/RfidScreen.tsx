@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Animal, RFID_RECENT, ESTADO, CAT, gHexFor, gdpTxt } from '@/data/agrosense';
 import { useBluetooth } from '@/hooks/useBluetooth';
 
@@ -8,6 +8,69 @@ interface Props {
   onOpenDrawer: () => void;
   animals: Animal[];
   onRegistrarPesaje?: (animal: Animal, pesoKg: number) => Promise<void>;
+}
+
+// iOS fallback: lector emparejado como teclado HID escribe el tag en el input
+function HidFallback({ onTag }: { onTag: (tag: string) => void }) {
+  const [val, setVal] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const submit = (raw: string) => {
+    const tag = raw.trim();
+    if (tag) onTag(tag);
+    setVal('');
+  };
+
+  return (
+    <div style={{ marginTop: 20, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14 }}>
+      <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 4, padding: '10px 14px', fontFamily: 'var(--font-jetbrains)', fontSize: 11, color: '#92400E', textAlign: 'center', maxWidth: 300 }}>
+        iOS no soporta Web Bluetooth.<br/>
+        Empareja el lector como <b>teclado Bluetooth</b> en Ajustes → Bluetooth, luego toca el campo y escanea el arete.
+      </div>
+      <input
+        ref={inputRef}
+        value={val}
+        onChange={e => setVal(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter') { e.preventDefault(); submit(val); }
+        }}
+        // Readers send \n — captured as Enter above. Also handle paste.
+        onPaste={e => {
+          e.preventDefault();
+          const pasted = e.clipboardData.getData('text').trim();
+          if (pasted) submit(pasted);
+        }}
+        placeholder="Escanea o escribe el arete…"
+        autoComplete="off"
+        autoCorrect="off"
+        spellCheck={false}
+        style={{
+          width: '100%', maxWidth: 300, height: 52,
+          border: '1.5px solid #15A34A', borderRadius: 4,
+          padding: '0 14px', fontSize: 15, fontFamily: 'var(--font-jetbrains)',
+          background: '#fff', outline: 'none', color: '#1A2B1A',
+          boxShadow: '0 2px 8px rgba(21,163,74,.12)',
+        }}
+      />
+      <button
+        onClick={() => submit(val)}
+        style={{
+          height: 52, padding: '0 32px', border: 'none', borderRadius: 4,
+          background: '#15A34A', color: '#fff', fontWeight: 800, fontSize: 15,
+          cursor: 'pointer', boxShadow: '0 4px 14px rgba(21,163,74,.28)',
+        }}
+      >
+        Buscar animal
+      </button>
+      <button onClick={() => inputRef.current?.focus()} style={{
+        marginTop: -4, background: 'none', border: 'none',
+        fontFamily: 'var(--font-jetbrains)', fontSize: 11, color: '#9DB39D',
+        cursor: 'pointer', textDecoration: 'underline',
+      }}>
+        Tocar para activar teclado del lector
+      </button>
+    </div>
+  );
 }
 
 const BT_STATUS_UI = {
@@ -208,9 +271,7 @@ export default function RfidScreen({ onOpenDrawer, animals, onRegistrarPesaje }:
 
             {/* Action button */}
             {status === 'unsupported' ? (
-              <div style={{ marginTop: 24, fontFamily: 'var(--font-jetbrains)', fontSize: 12, color: '#DC2626', textAlign: 'center', maxWidth: 260 }}>
-                Usa Chrome o Edge en Android para conectar el lector vía Bluetooth
-              </div>
+              <HidFallback onTag={handleTag} />
             ) : status === 'connected' ? (
               <button onClick={disconnect} style={{
                 marginTop: 24, height: 50, padding: '0 32px', border: '1px solid #FCA5A5', borderRadius: 4,
