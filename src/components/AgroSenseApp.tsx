@@ -208,8 +208,11 @@ export default function AgroSenseApp() {
         {tab === 'rfid' && (
           <RfidScreen
             animals={appAnimals}
+            fincaId={currentFinca?.id}
+            potreros={potreros}
             onOpenDrawer={() => setDrawerOpen(true)}
             onRegistrarPesaje={handleRegistrarPesaje}
+            onAnimalCreado={() => currentFinca && loadFincaData(currentFinca.id)}
           />
         )}
         {tab === 'agenda' && (

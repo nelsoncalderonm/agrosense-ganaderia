@@ -2,12 +2,134 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { Animal, RFID_RECENT, ESTADO, CAT, gHexFor, gdpTxt } from '@/data/agrosense';
+import { supabase } from '@/lib/supabase';
+import type { DbPotrero } from '@/lib/supabase';
 import { useBluetooth } from '@/hooks/useBluetooth';
 
 interface Props {
   onOpenDrawer: () => void;
   animals: Animal[];
+  fincaId?: string;
+  potreros?: DbPotrero[];
+  onAnimalCreado?: () => void;
   onRegistrarPesaje?: (animal: Animal, pesoKg: number) => Promise<void>;
+}
+
+const RAZAS = ['Cebú', 'Brahman', 'Brangus', 'Gyr', 'Romosinuano', 'Angus', 'Simmental', 'Mestizo', 'Otra'];
+const SEXOS = ['Novillo', 'Vaca', 'Toro', 'Ternero', 'Novilla'];
+const CATS  = ['Levante', 'Ceba', 'Cría'] as const;
+
+function CrearAnimalForm({
+  arete, fincaId, potreros, onCreado, onCancelar,
+}: {
+  arete: string;
+  fincaId: string;
+  potreros: DbPotrero[];
+  onCreado: () => void;
+  onCancelar: () => void;
+}) {
+  const [nombre,    setNombre]    = useState('');
+  const [raza,      setRaza]      = useState(RAZAS[0]);
+  const [sexo,      setSexo]      = useState(SEXOS[0]);
+  const [cat,       setCat]       = useState<'Levante'|'Ceba'|'Cría'>('Ceba');
+  const [pesoKg,    setPesoKg]    = useState('');
+  const [potreroId, setPotreroId] = useState(potreros[0]?.id ?? '');
+  const [saving,    setSaving]    = useState(false);
+  const [err,       setErr]       = useState<string|null>(null);
+
+  const handleGuardar = async () => {
+    if (!nombre.trim()) { setErr('Nombre requerido'); return; }
+    setSaving(true); setErr(null);
+    const { error } = await supabase.from('Agrosense_animales').insert({
+      finca_id:    fincaId,
+      potrero_id:  potreroId || null,
+      nombre:      nombre.trim(),
+      arete:       arete,
+      rfid:        arete,
+      raza,
+      sexo,
+      categoria:   cat,
+      estado:      'green',
+      estado_txt:  'Sano · recién registrado',
+      peso_actual: pesoKg ? parseFloat(pesoKg) : null,
+      gdp:         null,
+      gdp_delta:   null,
+      dias_potrero: 0,
+      activo:      true,
+    });
+    setSaving(false);
+    if (error) { setErr(error.message); return; }
+    onCreado();
+  };
+
+  const inp: React.CSSProperties = {
+    width: '100%', height: 44, border: '1px solid #C5D2C0', borderRadius: 4,
+    padding: '0 12px', fontSize: 14, background: '#fff', outline: 'none',
+    fontFamily: 'inherit', color: '#1A2B1A', boxSizing: 'border-box',
+  };
+  const lbl: React.CSSProperties = { fontSize: 10.5, color: '#6E8A6E', fontWeight: 600, letterSpacing: '.4px', marginBottom: 4, display: 'block' };
+
+  return (
+    <div className="animate-up" style={{ width: '100%', background: '#fff', border: '1px solid #E1E8DD', borderRadius: 6, padding: '16px 14px', marginTop: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div style={{ fontWeight: 800, fontSize: 14 }}>Registrar nuevo animal</div>
+        <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, background: '#DCFCE7', color: '#15A34A', padding: '3px 8px', borderRadius: 3, fontWeight: 600 }}>{arete}</div>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div>
+          <label style={lbl}>NOMBRE</label>
+          <input style={inp} value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Capitán" autoFocus />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div>
+            <label style={lbl}>RAZA</label>
+            <select style={inp} value={raza} onChange={e => setRaza(e.target.value)}>
+              {RAZAS.map(r => <option key={r}>{r}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={lbl}>SEXO</label>
+            <select style={inp} value={sexo} onChange={e => setSexo(e.target.value)}>
+              {SEXOS.map(s => <option key={s}>{s}</option>)}
+            </select>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div>
+            <label style={lbl}>CATEGORÍA</label>
+            <select style={inp} value={cat} onChange={e => setCat(e.target.value as typeof cat)}>
+              {CATS.map(c => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={lbl}>PESO INICIAL (kg)</label>
+            <input style={inp} type="number" value={pesoKg} onChange={e => setPesoKg(e.target.value)} placeholder="0" min={0} />
+          </div>
+        </div>
+        {potreros.length > 0 && (
+          <div>
+            <label style={lbl}>POTRERO</label>
+            <select style={inp} value={potreroId} onChange={e => setPotreroId(e.target.value)}>
+              <option value="">Sin asignar</option>
+              {potreros.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+            </select>
+          </div>
+        )}
+
+        {err && <div style={{ fontSize: 12, color: '#DC2626', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{err}</div>}
+
+        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+          <button onClick={onCancelar} style={{ flex: 1, height: 48, border: '1px solid #C5D2C0', borderRadius: 4, background: '#fff', color: '#6E8A6E', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+            Cancelar
+          </button>
+          <button onClick={handleGuardar} disabled={saving} style={{ flex: 1.6, height: 48, border: 'none', borderRadius: 4, background: saving ? '#6E8A6E' : '#15A34A', color: '#fff', fontWeight: 800, fontSize: 13, cursor: saving ? 'default' : 'pointer', boxShadow: '0 3px 10px rgba(21,163,74,.25)' }}>
+            {saving ? 'Guardando…' : 'Guardar animal'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // iOS fallback: lector emparejado como teclado HID escribe el tag en el input
@@ -80,7 +202,7 @@ const BT_STATUS_UI = {
   unsupported:  { bg: '#FEE2E2', border: '#FCA5A5', dot: '#DC2626', text: '#DC2626', label: 'NO SOPORTADO' },
 };
 
-export default function RfidScreen({ onOpenDrawer, animals, onRegistrarPesaje }: Props) {
+export default function RfidScreen({ onOpenDrawer, animals, fincaId, potreros = [], onAnimalCreado, onRegistrarPesaje }: Props) {
   const [foundAnimal, setFoundAnimal] = useState<Animal | null>(null);
   const [notFound, setNotFound] = useState<string | null>(null);
   const [recent, setRecent] = useState(RFID_RECENT);
@@ -255,10 +377,19 @@ export default function RfidScreen({ onOpenDrawer, animals, onRegistrarPesaje }:
                'Conecta el lector para escanear'}
             </div>
 
-            {/* Tag not found warning */}
-            {notFound && (
+            {/* Tag not found → offer to create */}
+            {notFound && fincaId && (
+              <CrearAnimalForm
+                arete={notFound}
+                fincaId={fincaId}
+                potreros={potreros}
+                onCancelar={() => setNotFound(null)}
+                onCreado={() => { setNotFound(null); onAnimalCreado?.(); }}
+              />
+            )}
+            {notFound && !fincaId && (
               <div style={{ marginTop: 10, background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 4, padding: '8px 14px', fontFamily: 'var(--font-jetbrains)', fontSize: 11, color: '#D97706', textAlign: 'center' }}>
-                Arete <b>{notFound}</b> no encontrado en base de datos
+                Arete <b>{notFound}</b> no registrado
               </div>
             )}
 
