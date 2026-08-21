@@ -58,7 +58,7 @@ function WeightChart({ period }: { period: '1M' | '3M' | '6M' }) {
 }
 
 export default function InicioScreen({ finca, role, moneda, setMoneda, onOpenDrawer, onOpenFincaPicker, onGoAnimales, onGoPotreros, wPeriod, setWPeriod, alertas, pendingSync }: Props) {
-  const canFinanzas = role === 'owner';
+  const canFinanzas = role === 'owner' || role === 'contable';
   const fecha = new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'long' });
 
   const usdRate = 4100;

@@ -84,7 +84,21 @@ export type DbMembresia = {
 };
 
 export async function getMisMembresias(): Promise<DbMembresia[]> {
-  const { data } = await supabase.from('Agrosense_membresias').select('*');
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  // Explicit filter: superadmins can SELECT every row per RLS, but this
+  // helper must only ever return the caller's own memberships.
+  const { data } = await supabase.from('Agrosense_membresias').select('*').eq('auth_user_id', user.id);
+  return (data ?? []) as DbMembresia[];
+}
+
+export async function getIsSuperadmin(): Promise<boolean> {
+  const { data } = await supabase.rpc('ag_is_superadmin');
+  return data === true;
+}
+
+export async function getMembresiasFinca(finca_id: string): Promise<DbMembresia[]> {
+  const { data } = await supabase.from('Agrosense_membresias').select('*').eq('finca_id', finca_id).order('nombre');
   return (data ?? []) as DbMembresia[];
 }
 

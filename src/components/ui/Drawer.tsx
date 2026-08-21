@@ -12,6 +12,7 @@ interface Props {
   onSignOut: () => void;
   variant?: 'sheet' | 'sidebar';
   activeTab?: string;
+  showAdmin?: boolean;
 }
 
 const MENU_ITEMS = [
@@ -26,15 +27,18 @@ const MENU_ITEMS = [
 ];
 
 const ROLE_LABEL: Record<RoleKey, string> = {
-  owner: 'Propietario', admin: 'Administrador', vaquero: 'Vaquero',
+  owner: 'Propietario', admin: 'Administrador', vaquero: 'Vaquero', contable: 'Contable',
 };
 
-export default function Drawer({ open, finca, displayName, role, onClose, onNavigate, onSignOut, variant = 'sheet', activeTab }: Props) {
+export default function Drawer({ open, finca, displayName, role, onClose, onNavigate, onSignOut, variant = 'sheet', activeTab, showAdmin }: Props) {
   const isSidebar = variant === 'sidebar';
   if (!isSidebar && !open) return null;
 
   const handleNav = (key: string) => { onNavigate(key); if (!isSidebar) onClose(); };
   const ini = displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '·';
+  const menuItems = showAdmin
+    ? [...MENU_ITEMS, { key: 'admin', label: 'Administración', icon: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75' }]
+    : MENU_ITEMS;
 
   const body = (
     <>
@@ -51,7 +55,7 @@ export default function Drawer({ open, finca, displayName, role, onClose, onNavi
 
       {/* Nav items */}
       <div style={{ padding: '8px 8px 0' }}>
-        {MENU_ITEMS.map(item => {
+        {menuItems.map(item => {
           const active = isSidebar && activeTab === item.key;
           return (
             <button key={item.key} onClick={() => handleNav(item.key)} style={{

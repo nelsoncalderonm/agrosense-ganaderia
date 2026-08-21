@@ -1,6 +1,6 @@
 export type EstadoKey = 'green' | 'amber' | 'red' | 'blue';
-export type RoleKey = 'owner' | 'admin' | 'vaquero';
-export type Tab = 'inicio' | 'animales' | 'rfid' | 'agenda' | 'finanzas';
+export type RoleKey = 'owner' | 'admin' | 'vaquero' | 'contable';
+export type Tab = 'inicio' | 'animales' | 'rfid' | 'agenda' | 'finanzas' | 'admin';
 export type CatKey = 'Levante' | 'Ceba' | 'Cría';
 
 export const ESTADO: Record<EstadoKey, { hex: string; soft: string }> = {

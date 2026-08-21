@@ -1,0 +1,153 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { RoleKey } from '@/data/agrosense';
+import { supabase, getFincas, getMembresiasFinca, DbFinca, DbMembresia } from '@/lib/supabase';
+
+interface Props {
+  onOpenDrawer: () => void;
+}
+
+const ROLE_OPTIONS: { value: RoleKey; label: string }[] = [
+  { value: 'owner', label: 'Propietario — acceso total' },
+  { value: 'admin', label: 'Administrador — hato y operación, sin finanzas' },
+  { value: 'contable', label: 'Contable — solo finanzas' },
+];
+
+const ROLE_LABEL: Record<RoleKey, string> = {
+  owner: 'Propietario', admin: 'Administrador', vaquero: 'Vaquero', contable: 'Contable',
+};
+
+function randomPassword() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+  let out = '';
+  for (let i = 0; i < 12; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  return out;
+}
+
+export default function AdminScreen({ onOpenDrawer }: Props) {
+  const [fincas, setFincas] = useState<DbFinca[]>([]);
+  const [fincaId, setFincaId] = useState('');
+  const [miembros, setMiembros] = useState<DbMembresia[]>([]);
+  const [loadingMiembros, setLoadingMiembros] = useState(false);
+
+  const [nombre, setNombre] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState(randomPassword());
+  const [rol, setRol] = useState<RoleKey>('admin');
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [lastCreated, setLastCreated] = useState<{ email: string; password: string } | null>(null);
+
+  useEffect(() => {
+    getFincas().then(f => { setFincas(f); if (f.length) setFincaId(f[0].id); });
+  }, []);
+
+  useEffect(() => {
+    if (!fincaId) return;
+    setLoadingMiembros(true);
+    getMembresiasFinca(fincaId).then(m => { setMiembros(m); setLoadingMiembros(false); });
+  }, [fincaId, lastCreated]);
+
+  const handleCrear = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fincaId || !nombre.trim() || !email.trim() || password.length < 8) return;
+    setSaving(true); setErr(null);
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch('/api/admin/create-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+      body: JSON.stringify({ email: email.trim(), password, nombre: nombre.trim(), rol, finca_id: fincaId }),
+    });
+    const json = await res.json();
+    setSaving(false);
+    if (!res.ok) { setErr(json.error ?? 'Error al crear el usuario'); return; }
+    setLastCreated({ email: email.trim(), password });
+    setNombre(''); setEmail(''); setPassword(randomPassword());
+  };
+
+  const inp: React.CSSProperties = {
+    width: '100%', height: 42, border: '1px solid #C5D2C0', borderRadius: 4,
+    padding: '0 12px', fontSize: 14, background: '#fff', outline: 'none',
+    fontFamily: 'inherit', color: '#1A2B1A', boxSizing: 'border-box',
+  };
+  const lbl: React.CSSProperties = {
+    fontSize: 10, color: '#6E8A6E', fontWeight: 700, letterSpacing: '.5px',
+    marginBottom: 4, display: 'block',
+  };
+
+  return (
+    <div style={{ paddingBottom: 90 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 16px 0' }}>
+        <button onClick={onOpenDrawer} className="ag-hamburger" style={{ width: 40, height: 40, marginLeft: -7, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, background: 'none', border: 'none' }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A2B1A" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <div style={{ fontWeight: 800, fontSize: 22 }}>Administración</div>
+      </div>
+
+      <div style={{ padding: '16px 16px 24px', maxWidth: 480 }}>
+        <div style={{ marginBottom: 14 }}>
+          <label style={lbl}>FINCA</label>
+          <select style={inp} value={fincaId} onChange={e => setFincaId(e.target.value)}>
+            {fincas.map(f => <option key={f.id} value={f.id}>{f.nombre}</option>)}
+          </select>
+        </div>
+
+        <div style={{ fontWeight: 700, fontSize: 14, margin: '18px 0 10px' }}>Crear cuenta</div>
+        <form onSubmit={handleCrear} style={{ background: '#fff', border: '1px solid #E1E8DD', borderRadius: 6, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div>
+            <label style={lbl}>NOMBRE</label>
+            <input style={inp} value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre completo" />
+          </div>
+          <div>
+            <label style={lbl}>CORREO</label>
+            <input style={inp} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="correo@ejemplo.com" />
+          </div>
+          <div>
+            <label style={lbl}>ROL</label>
+            <select style={inp} value={rol} onChange={e => setRol(e.target.value as RoleKey)}>
+              {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </select>
+          </div>
+          <div>
+            <label style={lbl}>CONTRASEÑA TEMPORAL</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input style={inp} value={password} onChange={e => setPassword(e.target.value)} />
+              <button type="button" onClick={() => setPassword(randomPassword())} style={{ height: 42, padding: '0 12px', border: '1px solid #C5D2C0', borderRadius: 4, background: '#fff', color: '#3A5A3A', fontWeight: 700, fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                Generar
+              </button>
+            </div>
+          </div>
+
+          {err && <div style={{ fontSize: 12, color: '#DC2626', background: '#FEE2E2', padding: '8px 10px', borderRadius: 4 }}>{err}</div>}
+
+          <button type="submit" disabled={saving} style={{ height: 46, border: 'none', borderRadius: 4, background: saving ? '#6E8A6E' : '#15A34A', color: '#fff', fontWeight: 800, fontSize: 13, cursor: saving ? 'default' : 'pointer' }}>
+            {saving ? 'Creando…' : 'Crear cuenta'}
+          </button>
+        </form>
+
+        {lastCreated && (
+          <div style={{ marginTop: 12, background: '#DCFCE7', border: '1px solid #86EFAC', borderRadius: 4, padding: 12 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: '#15A34A', marginBottom: 4 }}>Cuenta creada</div>
+            <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 12, color: '#1A2B1A' }}>
+              {lastCreated.email} · contraseña: <b>{lastCreated.password}</b>
+            </div>
+            <div style={{ fontSize: 11, color: '#3A5A3A', marginTop: 4 }}>Compártela por un canal seguro — no vuelve a mostrarse.</div>
+          </div>
+        )}
+
+        <div style={{ fontWeight: 700, fontSize: 14, margin: '22px 0 10px' }}>Miembros de esta finca</div>
+        <div style={{ background: '#fff', border: '1px solid #E1E8DD', borderRadius: 6, overflow: 'hidden' }}>
+          {loadingMiembros && <div style={{ padding: 14, fontSize: 12, color: '#9DB39D' }}>Cargando…</div>}
+          {!loadingMiembros && miembros.length === 0 && <div style={{ padding: 14, fontSize: 12, color: '#9DB39D' }}>Sin miembros todavía</div>}
+          {!loadingMiembros && miembros.map((m, i) => (
+            <div key={m.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 14px', borderTop: i > 0 ? '1px solid #EDF1EA' : 'none' }}>
+              <span style={{ fontSize: 13.5, fontWeight: 600 }}>{m.nombre}</span>
+              <span style={{ background: '#F3F4F6', color: '#3A5A3A', fontSize: 10.5, fontWeight: 700, borderRadius: 3, padding: '3px 8px' }}>{ROLE_LABEL[m.rol]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -6,7 +6,7 @@ import { Animal, Tab, RoleKey, CAT, ESTADO } from '@/data/agrosense';
 import {
   supabase, getFincas, getPotreros, getAnimales, getPesajesRecientes,
   getAlertas, getEventos, getProveedores, getClientes, getGastos, getMovimientos,
-  registrarPesaje, getMisMembresias,
+  registrarPesaje, getMisMembresias, getIsSuperadmin,
   DbFinca, DbPotrero, DbAnimal, DbAlerta, DbEvento, DbProveedor, DbCliente, DbGasto, DbMovimiento, DbPesaje, DbMembresia,
 } from '@/lib/supabase';
 import InicioScreen from './screens/InicioScreen';
@@ -14,6 +14,7 @@ import AnimalesScreen from './screens/AnimalesScreen';
 import RfidScreen from './screens/RfidScreen';
 import AgendaScreen from './screens/AgendaScreen';
 import FinanzasScreen from './screens/FinanzasScreen';
+import AdminScreen from './screens/AdminScreen';
 import Drawer from './ui/Drawer';
 import AnimalProfile from './ui/AnimalProfile';
 import FincaPicker from './ui/FincaPicker';
@@ -95,6 +96,7 @@ export default function AgroSenseApp() {
   const [session, setSession]     = useState<Session | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [membresias, setMembresias] = useState<DbMembresia[]>([]);
+  const [isSuperadmin, setIsSuperadmin] = useState(false);
 
   // DB state
   const [loading,   setLoading]   = useState(true);
@@ -142,10 +144,11 @@ export default function AgroSenseApp() {
 
   useEffect(() => {
     if (!session) return;
-    Promise.all([getFincas(), getMisMembresias()]).then(([f, m]) => {
+    Promise.all([getFincas(), getMisMembresias(), getIsSuperadmin()]).then(([f, m, superadmin]) => {
       setMembresias(m);
+      setIsSuperadmin(superadmin);
       const allowed = new Set(m.map(x => x.finca_id));
-      const mine = f.filter(x => allowed.has(x.id));
+      const mine = superadmin ? f : f.filter(x => allowed.has(x.id));
       setFincas(mine);
       if (mine.length) loadFincaData(mine[0].id).finally(() => setLoading(false));
       else setLoading(false);
@@ -186,7 +189,7 @@ export default function AgroSenseApp() {
   const appFinca = currentFinca ? dbFincaToFinca(currentFinca, potreros, animales) : null;
 
   const myMembresia = membresias.find(m => m.finca_id === currentFinca?.id);
-  const currentRole: RoleKey = myMembresia?.rol ?? 'vaquero';
+  const currentRole: RoleKey = myMembresia?.rol ?? (isSuperadmin ? 'owner' : 'vaquero');
   const displayName = myMembresia?.nombre ?? session?.user.email ?? '';
 
   const Spinner = (msg: string) => (
@@ -224,8 +227,9 @@ export default function AgroSenseApp() {
         displayName={displayName}
         role={currentRole}
         activeTab={tab}
+        showAdmin={isSuperadmin}
         onClose={() => {}}
-        onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas'].includes(key)) setTab(key as Tab); }}
+        onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin'].includes(key)) setTab(key as Tab); }}
         onSignOut={handleSignOut}
       />
 
@@ -282,6 +286,9 @@ export default function AgroSenseApp() {
             onRefresh={() => currentFinca && loadFincaData(currentFinca.id)}
           />
         )}
+        {tab === 'admin' && isSuperadmin && (
+          <AdminScreen onOpenDrawer={() => setDrawerOpen(true)} />
+        )}
       </div>
       </div>
 
@@ -307,8 +314,9 @@ export default function AgroSenseApp() {
             finca={appFinca ?? { key:'', nombre:'', ubic:'', ini:'', animales:0, kgProm:0, alertas:0, ha:0, valorCop:0, gananciaPct:0, gdpProm:0, gananciaMesKg:0, comp:{Levante:0,Ceba:0,Cría:0}, mov:{nacimientos:0,muertes:0,compras:0,ventas:0}, potreros:[] }}
             displayName={displayName}
             role={currentRole}
+            showAdmin={isSuperadmin}
             onClose={() => setDrawerOpen(false)}
-            onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas'].includes(key)) setTab(key as Tab); }}
+            onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin'].includes(key)) setTab(key as Tab); }}
             onSignOut={handleSignOut}
           />
         </div>

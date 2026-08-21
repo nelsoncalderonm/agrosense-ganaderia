@@ -26,7 +26,7 @@ export default function FinanzasScreen({ onOpenDrawer, role, proveedores, client
   const [subTab, setSubTab] = useState<SubTab>('compras');
   const [provFilter, setProvFilter] = useState('Todos');
 
-  const canFinanzas = role === 'owner';
+  const canFinanzas = role === 'owner' || role === 'contable';
   const totalGastos = gastos.reduce((s, g) => s + g.monto, 0);
   const gastosSync  = gastos.filter(g => g.pendiente_sync).length;
 
