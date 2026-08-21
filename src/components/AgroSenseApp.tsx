@@ -179,9 +179,22 @@ export default function AgroSenseApp() {
   }
 
   return (
-    <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', background:'#EEF2EC', position:'relative' }}>
+    <div className="ag-shell" style={{ minHeight:'100vh', display:'flex', flexDirection:'column', background:'#EEF2EC', position:'relative' }}>
+      {/* Desktop sidebar (≥1024px) — bottom tab bar + hamburger hide at that breakpoint */}
+      <Drawer
+        variant="sidebar"
+        open
+        finca={appFinca ?? { key:'', nombre:'', ubic:'', ini:'', animales:0, kgProm:0, alertas:0, ha:0, valorCop:0, gananciaPct:0, gdpProm:0, gananciaMesKg:0, comp:{Levante:0,Ceba:0,Cría:0}, mov:{nacimientos:0,muertes:0,compras:0,ventas:0}, potreros:[] }}
+        user={user}
+        activeTab={tab}
+        onClose={() => {}}
+        onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas'].includes(key)) setTab(key as Tab); }}
+        onSetRole={r => setUser(USERS.find(u => u.roleKey === r) || USERS[0])}
+      />
+
       {/* Screen content */}
-      <div style={{ flex:1, overflowY:'auto', overflowX:'hidden', paddingBottom:64 }} className="scrollbar-none">
+      <div className="ag-main" style={{ flex:1, display:'flex', flexDirection:'column' }}>
+      <div style={{ flex:1, overflowY:'auto', overflowX:'hidden', paddingBottom:64 }} className="scrollbar-none ag-content-inner">
         {tab === 'inicio' && appFinca && (
           <InicioScreen
             finca={appFinca}
@@ -233,9 +246,10 @@ export default function AgroSenseApp() {
           />
         )}
       </div>
+      </div>
 
-      {/* Tab bar — fixed at bottom */}
-      <div style={{ position:'fixed', bottom:0, left:0, right:0, background:'rgba(238,242,236,.95)', backdropFilter:'blur(12px)', borderTop:'1px solid #E1E8DD', padding:'8px 8px 12px', display:'flex', zIndex:30 }}>
+      {/* Tab bar — fixed at bottom (mobile only; desktop uses the sidebar) */}
+      <div className="ag-tabbar-mobile" style={{ position:'fixed', bottom:0, left:0, right:0, background:'rgba(238,242,236,.95)', backdropFilter:'blur(12px)', borderTop:'1px solid #E1E8DD', padding:'8px 8px 12px', display:'flex', zIndex:30 }}>
         {TABS.map(t => {
           const active = tab === t.key;
           return (

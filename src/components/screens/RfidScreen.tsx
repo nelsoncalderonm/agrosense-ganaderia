@@ -393,9 +393,9 @@ export default function RfidScreen({ onOpenDrawer, animals, fincaId, potreros = 
   return (
     <div style={{ minHeight: '100%', display: 'flex', flexDirection: 'column', paddingBottom: 84 }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '56px 20px 6px' }}>
+      <div className="rfid-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '56px 20px 6px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <button onClick={onOpenDrawer} style={{ width: 38, height: 38, marginLeft: -7, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, background: 'none', border: 'none' }}>
+          <button onClick={onOpenDrawer} className="ag-hamburger" style={{ width: 38, height: 38, marginLeft: -7, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, background: 'none', border: 'none' }}>
             <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="#1A2B1A" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
           </button>
           <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: '.4px' }}>Lector RFID</div>

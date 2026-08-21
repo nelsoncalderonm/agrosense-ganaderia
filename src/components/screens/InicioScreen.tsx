@@ -103,7 +103,7 @@ export default function InicioScreen({ finca, role, moneda, setMoneda, onOpenDra
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 11 }}>
-          <button onClick={onOpenDrawer} style={{ width: 40, height: 40, margin: '-6px 0 0 -7px', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
+          <button onClick={onOpenDrawer} className="ag-hamburger" style={{ width: 40, height: 40, margin: '-6px 0 0 -7px', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A2B1A" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
           </button>
           <button onClick={onOpenFincaPicker} style={{ background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}>

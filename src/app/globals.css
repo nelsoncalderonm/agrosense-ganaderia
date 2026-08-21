@@ -56,3 +56,31 @@ body {
 /* Hide scrollbars */
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Desktop layout (≥1024px): sidebar nav replaces bottom tab bar,
+   content column gets a max-width, overlays become centered dialogs ── */
+@media (min-width: 1024px) {
+  body { background: #DCE4D8; }
+
+  .ag-sidebar { display: flex !important; }
+  .ag-tabbar-mobile { display: none !important; }
+  .ag-hamburger { display: none !important; }
+
+  .ag-main { margin-left: 240px; }
+  .ag-content-inner { max-width: 900px; margin: 0 auto; }
+
+  .rfid-header { padding-top: 28px !important; }
+
+  .ag-sheet-desktop {
+    top: 50% !important;
+    left: 50% !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translate(-50%, -50%) !important;
+    width: 480px !important;
+    max-width: 90vw !important;
+    max-height: 82vh !important;
+    border-radius: 12px !important;
+    box-shadow: 0 20px 60px rgba(0,0,0,.25);
+  }
+}
