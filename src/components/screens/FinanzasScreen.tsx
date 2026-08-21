@@ -91,7 +91,7 @@ export default function FinanzasScreen({ onOpenDrawer, role, proveedores, client
             </div>
 
             <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>Gastos registrados</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="ag-list-grid" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {gastos.map(g => (
                 <div key={g.id} style={{ background: g.pendiente_sync ? '#FFFBEB' : '#fff', border: `1px solid ${g.pendiente_sync ? '#FDE68A' : '#E1E8DD'}`, borderRadius: 4, padding: '12px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                   <div style={{ minWidth: 0 }}>
@@ -134,7 +134,7 @@ export default function FinanzasScreen({ onOpenDrawer, role, proveedores, client
                 }}>{t}</button>
               ))}
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+            <div className="ag-list-grid" style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
               {filteredProvs.map(p => (
                 <div key={p.id} style={{ background: '#fff', border: '1px solid #E1E8DD', borderLeft: `3px solid ${TIPO_HEX[p.tipo ?? ''] || '#15A34A'}`, borderRadius: 4, padding: 13 }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
@@ -169,7 +169,7 @@ export default function FinanzasScreen({ onOpenDrawer, role, proveedores, client
                 <div style={{ fontFamily: 'var(--font-jetbrains)', fontWeight: 700, fontSize: 20, marginTop: 4, color: '#15A34A' }}>{money(totalVentas)}</div>
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+            <div className="ag-list-grid" style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
               {clientes.map(c => (
                 <div key={c.id} style={{ background: '#fff', border: '1px solid #E1E8DD', borderLeft: `3px solid ${TIPO_HEX[c.tipo ?? ''] || '#15A34A'}`, borderRadius: 4, padding: 13 }}>
                   <div style={{ fontSize: 14.5, fontWeight: 700 }}>{c.nombre}</div>
@@ -195,7 +195,7 @@ export default function FinanzasScreen({ onOpenDrawer, role, proveedores, client
                 <div style={{ fontFamily: 'var(--font-jetbrains)', fontWeight: 700, fontSize: 20, marginTop: 4, color: '#DC2626' }}>{money(totalCompras)}</div>
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+            <div className="ag-list-grid" style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
               {movimientos.map(m => {
                 const isVenta = m.tipo === 'venta';
                 const hex = isVenta ? '#15A34A' : '#2563EB';

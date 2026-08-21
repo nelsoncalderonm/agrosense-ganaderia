@@ -134,6 +134,9 @@ export default function InicioScreen({ finca, role, moneda, setMoneda, onOpenDra
         ))}
       </div>
 
+      {/* Desktop: hero+composición+chart on the left, activity feeds on the right */}
+      <div className="ag-dash-grid">
+      <div className="ag-dash-left">
       {/* Hero: Valor del hato */}
       {canFinanzas ? (
         <div style={{ background: 'linear-gradient(135deg,#137A39 0%,#16A34A 100%)', borderRadius: 4, padding: 16, marginTop: 14, color: '#fff' }}>
@@ -231,7 +234,9 @@ export default function InicioScreen({ finca, role, moneda, setMoneda, onOpenDra
         <div style={{ marginTop: 10 }}><WeightChart period={wPeriod} /></div>
         <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 10, color: '#9DB39D', textAlign: 'center', marginTop: 2 }}>Peso promedio por animal</div>
       </div>
+      </div>
 
+      <div className="ag-dash-right">
       {/* Movimientos del mes */}
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '24px 2px 11px' }}>
         <div style={{ fontWeight: 800, fontSize: 16 }}>Movimientos del mes</div>
@@ -313,6 +318,8 @@ export default function InicioScreen({ finca, role, moneda, setMoneda, onOpenDra
             </div>
           </div>
         ))}
+      </div>
+      </div>
       </div>
     </div>
   );

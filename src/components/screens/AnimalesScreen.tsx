@@ -56,7 +56,7 @@ export default function AnimalesScreen({ onOpenDrawer, onSelectAnimal, animals }
         </div>
       </div>
 
-      <div style={{ padding: '12px 16px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="ag-animales-grid" style={{ padding: '12px 16px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {filtered.length === 0 && (
           <div style={{ textAlign: 'center', padding: '50px 20px', color: '#9DB39D', fontFamily: 'var(--font-jetbrains)', fontSize: 13 }}>Sin resultados</div>
         )}
