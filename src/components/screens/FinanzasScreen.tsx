@@ -64,6 +64,17 @@ export default function FinanzasScreen({ onOpenDrawer, role, proveedores, client
         </div>
       </div>
 
+      {!canFinanzas && (
+        <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+          <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#F3F4F6', margin: '0 auto 14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6E8A6E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          </div>
+          <div style={{ fontWeight: 700, fontSize: 14.5, marginBottom: 4 }}>Sin acceso a finanzas</div>
+          <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 12, color: '#9DB39D', maxWidth: 280, margin: '0 auto' }}>Tu rol no tiene permiso para ver información financiera de esta finca. Pide acceso al propietario.</div>
+        </div>
+      )}
+
+      {canFinanzas && (
       <div style={{ padding: '16px 16px 24px' }}>
         {/* COMPRAS */}
         {subTab === 'compras' && (
@@ -220,6 +231,7 @@ export default function FinanzasScreen({ onOpenDrawer, role, proveedores, client
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

@@ -1,14 +1,15 @@
 'use client';
 
-import { Finca, User, USERS, RoleKey } from '@/data/agrosense';
+import { Finca, RoleKey } from '@/data/agrosense';
 
 interface Props {
   open: boolean;
   finca: Finca;
-  user: User;
+  displayName: string;
+  role: RoleKey;
   onClose: () => void;
   onNavigate: (tab: string) => void;
-  onSetRole: (r: RoleKey) => void;
+  onSignOut: () => void;
   variant?: 'sheet' | 'sidebar';
   activeTab?: string;
 }
@@ -24,12 +25,16 @@ const MENU_ITEMS = [
   { key: 'ajustes',   label: 'Ajustes',          icon: 'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z' },
 ];
 
-export default function Drawer({ open, finca, user, onClose, onNavigate, onSetRole, variant = 'sheet', activeTab }: Props) {
+const ROLE_LABEL: Record<RoleKey, string> = {
+  owner: 'Propietario', admin: 'Administrador', vaquero: 'Vaquero',
+};
+
+export default function Drawer({ open, finca, displayName, role, onClose, onNavigate, onSignOut, variant = 'sheet', activeTab }: Props) {
   const isSidebar = variant === 'sidebar';
   if (!isSidebar && !open) return null;
 
   const handleNav = (key: string) => { onNavigate(key); if (!isSidebar) onClose(); };
-  const handleSetRole = (r: RoleKey) => { onSetRole(r); if (!isSidebar) onClose(); };
+  const ini = displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || '·';
 
   const body = (
     <>
@@ -78,27 +83,26 @@ export default function Drawer({ open, finca, user, onClose, onNavigate, onSetRo
         })}
       </div>
 
-      {/* User switcher */}
+      {/* Account */}
       <div style={{ margin: '12px 12px 0', background: '#fff', border: '1px solid #E1E8DD', borderRadius: 8, overflow: 'hidden' }}>
         <div style={{ padding: '10px 14px', borderBottom: '1px solid #E1E8DD' }}>
-          <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 10, color: '#9DB39D', textTransform: 'uppercase', letterSpacing: '.5px' }}>Usuario activo</div>
+          <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 10, color: '#9DB39D', textTransform: 'uppercase', letterSpacing: '.5px' }}>Cuenta</div>
         </div>
-        {USERS.map(u => (
-          <button key={u.roleKey} onClick={() => handleSetRole(u.roleKey)} style={{
-            display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-            padding: '11px 14px', background: user.roleKey === u.roleKey ? '#F0FDF4' : 'transparent',
-            border: 'none', borderTop: '1px solid #EDF1EA', cursor: 'pointer', textAlign: 'left',
-          }}>
-            <div style={{ width: 34, height: 34, borderRadius: '50%', background: user.roleKey === u.roleKey ? '#DCFCE7' : '#F3F4F6', border: user.roleKey === u.roleKey ? '1.5px solid #15A34A' : '1px solid #E1E8DD', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, color: user.roleKey === u.roleKey ? '#15A34A' : '#6E8A6E', flexShrink: 0 }}>{u.ini}</div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13.5, fontWeight: 600 }}>{u.name}</div>
-              <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 10.5, color: '#6E8A6E', marginTop: 1 }}>{u.role}</div>
-            </div>
-            {user.roleKey === u.roleKey && (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#15A34A" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-            )}
-          </button>
-        ))}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px' }}>
+          <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#DCFCE7', border: '1.5px solid #15A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, color: '#15A34A', flexShrink: 0 }}>{ini}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
+            <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 10.5, color: '#6E8A6E', marginTop: 1 }}>{ROLE_LABEL[role]}</div>
+          </div>
+        </div>
+        <button onClick={onSignOut} style={{
+          display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+          padding: '11px 14px', background: 'transparent',
+          border: 'none', borderTop: '1px solid #EDF1EA', cursor: 'pointer', textAlign: 'left', color: '#DC2626',
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+          <span style={{ fontSize: 13.5, fontWeight: 600 }}>Cerrar sesión</span>
+        </button>
       </div>
     </>
   );

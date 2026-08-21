@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import type { RoleKey } from '@/data/agrosense';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -77,6 +78,15 @@ export type DbIngreso = {
   id: string; finca_id: string; cliente_id: string | null;
   movimiento_id: string | null; concepto: string; monto: number; fecha: string;
 };
+
+export type DbMembresia = {
+  id: string; auth_user_id: string; finca_id: string; nombre: string; rol: RoleKey;
+};
+
+export async function getMisMembresias(): Promise<DbMembresia[]> {
+  const { data } = await supabase.from('Agrosense_membresias').select('*');
+  return (data ?? []) as DbMembresia[];
+}
 
 // ---------- fetch helpers ----------
 

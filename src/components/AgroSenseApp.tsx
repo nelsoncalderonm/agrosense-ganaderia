@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { USERS, User, Animal, Tab, RoleKey, CAT, ESTADO } from '@/data/agrosense';
+import type { Session } from '@supabase/supabase-js';
+import { Animal, Tab, RoleKey, CAT, ESTADO } from '@/data/agrosense';
 import {
   supabase, getFincas, getPotreros, getAnimales, getPesajesRecientes,
   getAlertas, getEventos, getProveedores, getClientes, getGastos, getMovimientos,
-  registrarPesaje,
-  DbFinca, DbPotrero, DbAnimal, DbAlerta, DbEvento, DbProveedor, DbCliente, DbGasto, DbMovimiento, DbPesaje,
+  registrarPesaje, getMisMembresias,
+  DbFinca, DbPotrero, DbAnimal, DbAlerta, DbEvento, DbProveedor, DbCliente, DbGasto, DbMovimiento, DbPesaje, DbMembresia,
 } from '@/lib/supabase';
 import InicioScreen from './screens/InicioScreen';
 import AnimalesScreen from './screens/AnimalesScreen';
@@ -16,6 +17,7 @@ import FinanzasScreen from './screens/FinanzasScreen';
 import Drawer from './ui/Drawer';
 import AnimalProfile from './ui/AnimalProfile';
 import FincaPicker from './ui/FincaPicker';
+import LoginScreen from './auth/LoginScreen';
 
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: 'inicio',   label: 'Inicio',   icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg> },
@@ -83,12 +85,16 @@ function dbFincaToFinca(f: DbFinca, potreros: DbPotrero[], animales: DbAnimal[])
 
 export default function AgroSenseApp() {
   const [tab, setTab]           = useState<Tab>('inicio');
-  const [user, setUser]         = useState<User>(USERS[0]);
   const [moneda, setMoneda]     = useState<'COP'|'USD'>('COP');
   const [wPeriod, setWPeriod]   = useState<'1M'|'3M'|'6M'>('6M');
   const [drawerOpen, setDrawerOpen]         = useState(false);
   const [fincaPickerOpen, setFincaPickerOpen] = useState(false);
   const [selectedAnimal, setSelectedAnimal] = useState<Animal|null>(null);
+
+  // Auth state
+  const [session, setSession]     = useState<Session | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [membresias, setMembresias] = useState<DbMembresia[]>([]);
 
   // DB state
   const [loading,   setLoading]   = useState(true);
@@ -129,12 +135,24 @@ export default function AgroSenseApp() {
   }, []);
 
   useEffect(() => {
-    getFincas().then(f => {
-      setFincas(f);
-      if (f.length) loadFincaData(f[0].id).finally(() => setLoading(false));
+    supabase.auth.getSession().then(({ data }) => { setSession(data.session); setAuthChecked(true); });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!session) return;
+    Promise.all([getFincas(), getMisMembresias()]).then(([f, m]) => {
+      setMembresias(m);
+      const allowed = new Set(m.map(x => x.finca_id));
+      const mine = f.filter(x => allowed.has(x.id));
+      setFincas(mine);
+      if (mine.length) loadFincaData(mine[0].id).finally(() => setLoading(false));
       else setLoading(false);
     });
-  }, [loadFincaData]);
+  }, [session, loadFincaData]);
+
+  const handleSignOut = () => { supabase.auth.signOut(); };
 
   const handleSelectFinca = async (idx: number) => {
     setFincaIdx(idx);
@@ -167,12 +185,30 @@ export default function AgroSenseApp() {
   const appAnimals: Animal[] = animales.map(a => dbAnimalToAnimal(a, potreroMap[a.potrero_id ?? ''] ?? 'Sin potrero'));
   const appFinca = currentFinca ? dbFincaToFinca(currentFinca, potreros, animales) : null;
 
-  if (loading) {
+  const myMembresia = membresias.find(m => m.finca_id === currentFinca?.id);
+  const currentRole: RoleKey = myMembresia?.rol ?? 'vaquero';
+  const displayName = myMembresia?.nombre ?? session?.user.email ?? '';
+
+  const Spinner = (msg: string) => (
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#EEF2EC' }}>
+      <div style={{ textAlign:'center' }}>
+        <div style={{ width:48, height:48, borderRadius:'50%', border:'3px solid #15A34A', borderTopColor:'transparent', animation:'agSweep 0.8s linear infinite', margin:'0 auto' }}/>
+        <div style={{ fontFamily:'var(--font-jetbrains)', fontSize:12, color:'#6E8A6E', marginTop:14, letterSpacing:'.5px' }}>{msg}</div>
+      </div>
+    </div>
+  );
+
+  if (!authChecked) return Spinner('Verificando sesión...');
+  if (!session) return <LoginScreen />;
+  if (loading) return Spinner('Cargando datos...');
+
+  if (!fincas.length) {
     return (
-      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#EEF2EC' }}>
-        <div style={{ textAlign:'center' }}>
-          <div style={{ width:48, height:48, borderRadius:'50%', border:'3px solid #15A34A', borderTopColor:'transparent', animation:'agSweep 0.8s linear infinite', margin:'0 auto' }}/>
-          <div style={{ fontFamily:'var(--font-jetbrains)', fontSize:12, color:'#6E8A6E', marginTop:14, letterSpacing:'.5px' }}>Cargando datos...</div>
+      <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#EEF2EC', padding:20 }}>
+        <div style={{ textAlign:'center', maxWidth:340 }}>
+          <div style={{ fontWeight:800, fontSize:17, marginBottom:8 }}>Sin fincas asignadas</div>
+          <div style={{ fontFamily:'var(--font-jetbrains)', fontSize:12.5, color:'#6E8A6E', marginBottom:18 }}>Tu cuenta ({session.user.email}) no tiene acceso a ninguna finca todavía. Pide a un administrador que te agregue.</div>
+          <button onClick={handleSignOut} style={{ height:44, padding:'0 20px', border:'1px solid #C5D2C0', borderRadius:4, background:'#fff', color:'#3A5A3A', fontWeight:700, fontSize:13, cursor:'pointer' }}>Cerrar sesión</button>
         </div>
       </div>
     );
@@ -185,11 +221,12 @@ export default function AgroSenseApp() {
         variant="sidebar"
         open
         finca={appFinca ?? { key:'', nombre:'', ubic:'', ini:'', animales:0, kgProm:0, alertas:0, ha:0, valorCop:0, gananciaPct:0, gdpProm:0, gananciaMesKg:0, comp:{Levante:0,Ceba:0,Cría:0}, mov:{nacimientos:0,muertes:0,compras:0,ventas:0}, potreros:[] }}
-        user={user}
+        displayName={displayName}
+        role={currentRole}
         activeTab={tab}
         onClose={() => {}}
         onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas'].includes(key)) setTab(key as Tab); }}
-        onSetRole={r => setUser(USERS.find(u => u.roleKey === r) || USERS[0])}
+        onSignOut={handleSignOut}
       />
 
       {/* Screen content */}
@@ -198,7 +235,7 @@ export default function AgroSenseApp() {
         {tab === 'inicio' && appFinca && (
           <InicioScreen
             finca={appFinca}
-            role={user.roleKey}
+            role={currentRole}
             moneda={moneda}
             setMoneda={setMoneda}
             onOpenDrawer={() => setDrawerOpen(true)}
@@ -237,7 +274,7 @@ export default function AgroSenseApp() {
         {tab === 'finanzas' && (
           <FinanzasScreen
             onOpenDrawer={() => setDrawerOpen(true)}
-            role={user.roleKey}
+            role={currentRole}
             proveedores={proveedores}
             clientes={clientes}
             gastos={gastos}
@@ -268,10 +305,11 @@ export default function AgroSenseApp() {
           <Drawer
             open={drawerOpen}
             finca={appFinca ?? { key:'', nombre:'', ubic:'', ini:'', animales:0, kgProm:0, alertas:0, ha:0, valorCop:0, gananciaPct:0, gdpProm:0, gananciaMesKg:0, comp:{Levante:0,Ceba:0,Cría:0}, mov:{nacimientos:0,muertes:0,compras:0,ventas:0}, potreros:[] }}
-            user={user}
+            displayName={displayName}
+            role={currentRole}
             onClose={() => setDrawerOpen(false)}
             onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas'].includes(key)) setTab(key as Tab); }}
-            onSetRole={r => setUser(USERS.find(u => u.roleKey === r) || USERS[0])}
+            onSignOut={handleSignOut}
           />
         </div>
       )}

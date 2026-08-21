@@ -38,10 +38,6 @@ export interface Finca {
   potreros: Potrero[];
 }
 
-export interface User {
-  roleKey: RoleKey; name: string; role: string; ini: string; desc: string;
-}
-
 export interface Proveedor {
   id: string; nombre: string; nit: string; ciudad: string;
   tipo: string; tel: string; facturas: number; totalMes: number; viaEmail: boolean;
@@ -88,12 +84,6 @@ export const FINCAS: Finca[] = [
   { key:'brisas', nombre:'Las Brisas', ubic:'Sahagún, Córdoba', ini:'LB', animales:97, kgProm:495, alertas:2, ha:158, valorCop:498000000, gananciaPct:5.0, gdpProm:0.86, gananciaMesKg:2610,
     comp:{ Levante:28, Ceba:40, Cría:29 }, mov:{ nacimientos:5, muertes:0, compras:0, ventas:4 },
     potreros:[ {nombre:'El Mirador', animales:44, cap:55, ha:52, aforo:2.7, estado:'Pastoreo', dias:6}, {nombre:'Los Mangos', animales:33, cap:45, ha:44, aforo:2.2, estado:'Pastoreo', dias:11}, {nombre:'La Loma', animales:20, cap:40, ha:38, aforo:1.9, estado:'Descanso', dias:24}, {nombre:'El Edén', animales:0, cap:24, ha:24, aforo:3.2, estado:'Descanso', dias:40} ] },
-];
-
-export const USERS: User[] = [
-  { roleKey:'owner',   name:'Carlos Mejía', role:'Propietario',   ini:'CM', desc:'Acceso total: finanzas, hato y operación' },
-  { roleKey:'admin',   name:'José Ramírez', role:'Administrador', ini:'JR', desc:'Hato y operación · sin información financiera' },
-  { roleKey:'vaquero', name:'Aníbal Pérez', role:'Vaquero',       ini:'AP', desc:'Solo pesaje RFID y consulta de animales' },
 ];
 
 export const PROVEEDORES: Proveedor[] = [
