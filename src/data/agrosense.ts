@@ -17,7 +17,7 @@ export const CAT: Record<CatKey, { hex: string; soft: string }> = {
 };
 
 export interface Animal {
-  nombre: string; id: string; arete: string; raza: string;
+  nombre: string; id: string; dbId: string; arete: string; raza: string;
   sexo: string; sx: string; cat: CatKey; peso: number;
   gdp: number; gdpDelta: number; potrero: string; estado: EstadoKey;
   dias: number; pesoAnt: number; diasEnt: number;
@@ -59,20 +59,6 @@ export interface MovGanado {
   totalGanadoCop?: number; transporte?: number; totalAdqCop?: number;
   gdpEst?: number; diasDesde?: number; precioMercadoKg?: number;
 }
-
-export const ANIMALS: Animal[] = [
-  { nombre:'Capitán',  id:'CO·0457903', arete:'·903', raza:'Cebú',        sexo:'Novillo', sx:'M', cat:'Ceba',    peso:538, gdp:1.12, gdpDelta:0.15,  potrero:'El Guayabo', estado:'green', dias:41, pesoAnt:522, diasEnt:14, estadoTxt:'Sano · excelente ganancia',         estadoCorto:'Sano' },
-  { nombre:'Rayo',     id:'CO·0458233', arete:'·233', raza:'Brahman',     sexo:'Novillo', sx:'M', cat:'Ceba',    peso:502, gdp:1.05, gdpDelta:0.11,  potrero:'La Palma',   estado:'green', dias:36, pesoAnt:487, diasEnt:14, estadoTxt:'Sano · al día con vacunas',         estadoCorto:'Sano' },
-  { nombre:'Tormenta', id:'CO·0458190', arete:'·190', raza:'Brangus',     sexo:'Novillo', sx:'M', cat:'Ceba',    peso:467, gdp:0.98, gdpDelta:0.05,  potrero:'El Guayabo', estado:'green', dias:28, pesoAnt:453, diasEnt:14, estadoTxt:'Sano · al día con vacunas',         estadoCorto:'Sano' },
-  { nombre:'Moro',     id:'CO·0459120', arete:'·120', raza:'Cebú',        sexo:'Novillo', sx:'M', cat:'Levante', peso:312, gdp:0.92, gdpDelta:0.09,  potrero:'La Palma',   estado:'green', dias:22, pesoAnt:299, diasEnt:14, estadoTxt:'Sano · buen desarrollo',            estadoCorto:'Sano' },
-  { nombre:'Lucas',    id:'CO·0459088', arete:'·088', raza:'Brahman',     sexo:'Ternero', sx:'M', cat:'Levante', peso:268, gdp:0.74, gdpDelta:0.04,  potrero:'La Palma',   estado:'green', dias:18, pesoAnt:258, diasEnt:14, estadoTxt:'Sano · al día con vacunas',         estadoCorto:'Sano' },
-  { nombre:'Estrella', id:'CO·0459145', arete:'·145', raza:'Gyr',         sexo:'Novilla', sx:'H', cat:'Levante', peso:289, gdp:0.61, gdpDelta:-0.05, potrero:'La Ceiba',   estado:'amber', dias:31, pesoAnt:281, diasEnt:14, estadoTxt:'GDP por debajo de la meta',         estadoCorto:'Atención' },
-  { nombre:'Lucero',   id:'CO·0457821', arete:'·821', raza:'Brahman',     sexo:'Vaca',    sx:'H', cat:'Cría',    peso:412, gdp:0.85, gdpDelta:0.07,  potrero:'La Ceiba',   estado:'green', dias:34, pesoAnt:400, diasEnt:14, estadoTxt:'Sana · cría al pie',                estadoCorto:'Sano' },
-  { nombre:'Perla',    id:'CO·0457690', arete:'·690', raza:'Gyr',         sexo:'Vaca',    sx:'H', cat:'Cría',    peso:421, gdp:0.55, gdpDelta:-0.06, potrero:'El Guayabo', estado:'amber', dias:47, pesoAnt:413, diasEnt:14, estadoTxt:'Vacuna aftosa próxima · 5 días',    estadoCorto:'Atención' },
-  { nombre:'Manchas',  id:'CO·0458012', arete:'·012', raza:'Gyr',         sexo:'Vaca',    sx:'H', cat:'Cría',    peso:389, gdp:0.42, gdpDelta:-0.18, potrero:'La Palma',   estado:'amber', dias:52, pesoAnt:383, diasEnt:14, estadoTxt:'GDP bajo · revisar alimentación',   estadoCorto:'Atención' },
-  { nombre:'Canela',   id:'CO·0457744', arete:'·744', raza:'Romosinuano', sexo:'Vaca',    sx:'H', cat:'Cría',    peso:398, gdp:-0.15,gdpDelta:-0.32, potrero:'La Ceiba',   estado:'red',   dias:19, pesoAnt:401, diasEnt:14, estadoTxt:'Período de retiro · no apta venta', estadoCorto:'Retiro' },
-  { nombre:'Bravo',    id:'CO·0458301', arete:'·301', raza:'Brangus',     sexo:'Toro',    sx:'M', cat:'Cría',    peso:612, gdp:0.78, gdpDelta:0.03,  potrero:'La Ceiba',   estado:'green', dias:60, pesoAnt:601, diasEnt:14, estadoTxt:'Sano · reproductor activo',         estadoCorto:'Sano' },
-];
 
 export const FINCAS: Finca[] = [
   { key:'esperanza', nombre:'Hacienda La Esperanza', ubic:'Montería, Córdoba',     ini:'HE', animales:248, kgProm:462, alertas:3, ha:340, valorCop:1184000000, gananciaPct:4.2, gdpProm:0.78, gananciaMesKg:7440,

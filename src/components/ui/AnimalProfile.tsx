@@ -1,17 +1,82 @@
 'use client';
 
-import { Animal, CAT, ESTADO, gHexFor, gdpTxt, money } from '@/data/agrosense';
+import { useState } from 'react';
+import { Animal, CAT, ESTADO, gHexFor, gdpTxt } from '@/data/agrosense';
+import { registrarBaja } from '@/lib/supabase';
 
 interface Props {
   animal: Animal;
+  fincaId?: string;
   onClose: () => void;
   onPesaje: () => void;
+  onBajaRegistrada?: () => void;
 }
 
-export default function AnimalProfile({ animal, onClose, onPesaje }: Props) {
+const CAUSAS = ['Enfermedad', 'Accidente', 'Depredación', 'Parto', 'Vejez', 'Otra'];
+
+function BajaForm({ animal, fincaId, onCancelar, onRegistrada }: {
+  animal: Animal; fincaId: string; onCancelar: () => void; onRegistrada: () => void;
+}) {
+  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
+  const [causaCat, setCausaCat] = useState(CAUSAS[0]);
+  const [detalle, setDetalle] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const inp: React.CSSProperties = {
+    width: '100%', height: 42, border: '1px solid #C5D2C0', borderRadius: 4,
+    padding: '0 12px', fontSize: 14, background: '#fff', outline: 'none',
+    fontFamily: 'inherit', color: '#1A2B1A', boxSizing: 'border-box',
+  };
+  const lbl: React.CSSProperties = {
+    fontSize: 10, color: '#6E8A6E', fontWeight: 700, letterSpacing: '.5px',
+    marginBottom: 4, display: 'block',
+  };
+
+  const handleGuardar = async () => {
+    setSaving(true); setErr(null);
+    const causa = detalle.trim() ? `${causaCat}: ${detalle.trim()}` : causaCat;
+    const { error } = await registrarBaja({ finca_id: fincaId, animal_id: animal.dbId, fecha, causa });
+    setSaving(false);
+    if (error) { setErr(error); return; }
+    onRegistrada();
+  };
+
+  return (
+    <div className="animate-up" style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 6, padding: '16px 14px' }}>
+      <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 4, color: '#DC2626' }}>Registrar baja de {animal.nombre}</div>
+      <div style={{ fontSize: 11.5, color: '#991B1B', marginBottom: 12 }}>El animal se marcará como inactivo y saldrá de los listados.</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div><label style={lbl}>FECHA</label>
+            <input style={inp} type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
+          </div>
+          <div><label style={lbl}>CAUSA</label>
+            <select style={inp} value={causaCat} onChange={e => setCausaCat(e.target.value)}>
+              {CAUSAS.map(c => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+        </div>
+        <div><label style={lbl}>DETALLE (OPCIONAL)</label>
+          <input style={inp} value={detalle} onChange={e => setDetalle(e.target.value)} placeholder="Ej: fiebre aftosa confirmada" />
+        </div>
+        {err && <div style={{ fontSize: 12, color: '#DC2626', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{err}</div>}
+        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+          <button onClick={onCancelar} style={{ flex: 1, height: 46, border: '1px solid #C5D2C0', borderRadius: 4, background: '#fff', color: '#6E8A6E', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+          <button onClick={handleGuardar} disabled={saving} style={{ flex: 1.6, height: 46, border: 'none', borderRadius: 4, background: saving ? '#6E8A6E' : '#DC2626', color: '#fff', fontWeight: 800, fontSize: 13, cursor: saving ? 'default' : 'pointer' }}>
+            {saving ? 'Guardando…' : 'Confirmar baja'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function AnimalProfile({ animal, fincaId, onClose, onPesaje, onBajaRegistrada }: Props) {
   const cat = CAT[animal.cat];
   const est = ESTADO[animal.estado];
   const gain = animal.peso - animal.pesoAnt;
+  const [showBaja, setShowBaja] = useState(false);
 
   return (
     <>
@@ -80,13 +145,28 @@ export default function AnimalProfile({ animal, onClose, onPesaje }: Props) {
             ))}
           </div>
 
-          {/* Actions */}
-          <div style={{ display: 'flex', gap: 9 }}>
-            <button onClick={onClose} style={{ flex: 1, height: 52, border: '1px solid #C5D2C0', borderRadius: 4, background: '#fff', color: '#3A5A3A', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Cerrar</button>
-            <button onClick={onPesaje} style={{ flex: 1.4, height: 52, border: 'none', borderRadius: 4, background: '#15A34A', color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 14px rgba(21,163,74,.28)' }}>
-              Registrar pesaje
-            </button>
-          </div>
+          {showBaja && fincaId ? (
+            <BajaForm
+              animal={animal} fincaId={fincaId}
+              onCancelar={() => setShowBaja(false)}
+              onRegistrada={() => { setShowBaja(false); onBajaRegistrada?.(); onClose(); }}
+            />
+          ) : (
+            <>
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: 9 }}>
+                <button onClick={onClose} style={{ flex: 1, height: 52, border: '1px solid #C5D2C0', borderRadius: 4, background: '#fff', color: '#3A5A3A', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Cerrar</button>
+                <button onClick={onPesaje} style={{ flex: 1.4, height: 52, border: 'none', borderRadius: 4, background: '#15A34A', color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', boxShadow: '0 4px 14px rgba(21,163,74,.28)' }}>
+                  Registrar pesaje
+                </button>
+              </div>
+              {fincaId && (
+                <button onClick={() => setShowBaja(true)} style={{ width: '100%', marginTop: 9, height: 44, border: '1px solid #FCA5A5', borderRadius: 4, background: '#FEE2E2', color: '#DC2626', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                  Registrar baja
+                </button>
+              )}
+            </>
+          )}
         </div>
       </div>
     </>

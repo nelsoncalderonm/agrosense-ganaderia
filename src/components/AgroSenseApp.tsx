@@ -6,8 +6,10 @@ import { Animal, Tab, RoleKey, CAT, ESTADO } from '@/data/agrosense';
 import {
   supabase, getFincas, getPotreros, getAnimales, getPesajesRecientes,
   getAlertas, getEventos, getProveedores, getClientes, getGastos, getMovimientos,
+  getVacunaciones, getNacimientos, getBajas,
   registrarPesaje, getMisMembresias, getIsSuperadmin,
   DbFinca, DbPotrero, DbAnimal, DbAlerta, DbEvento, DbProveedor, DbCliente, DbGasto, DbMovimiento, DbPesaje, DbMembresia,
+  DbVacunacion, DbNacimiento, DbBaja,
 } from '@/lib/supabase';
 import InicioScreen from './screens/InicioScreen';
 import AnimalesScreen from './screens/AnimalesScreen';
@@ -33,6 +35,7 @@ function dbAnimalToAnimal(a: DbAnimal, potreroNombre: string): Animal {
   return {
     nombre: a.nombre ?? a.arete,
     id: `CO·${a.arete.replace('·', '0')}`,
+    dbId: a.id,
     arete: a.arete,
     raza: a.raza ?? 'Sin raza',
     sexo: a.sexo ?? 'Novillo',
@@ -51,9 +54,19 @@ function dbAnimalToAnimal(a: DbAnimal, potreroNombre: string): Animal {
   };
 }
 
-function dbFincaToFinca(f: DbFinca, potreros: DbPotrero[], animales: DbAnimal[]) {
+function dbFincaToFinca(
+  f: DbFinca, potreros: DbPotrero[], animales: DbAnimal[],
+  nacimientos: DbNacimiento[], bajas: DbBaja[], movimientos: DbMovimiento[],
+) {
   const comp = { Levante: 0, Ceba: 0, Cría: 0 };
-  const mov  = { nacimientos: 0, muertes: 0, compras: 0, ventas: 0 };
+  const now = new Date();
+  const esteMes = (fecha: string) => { const d = new Date(fecha); return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth(); };
+  const mov = {
+    nacimientos: nacimientos.filter(n => esteMes(n.fecha)).length,
+    muertes:     bajas.filter(b => esteMes(b.fecha)).length,
+    compras:     movimientos.filter(m => m.tipo === 'compra' && esteMes(m.fecha)).length,
+    ventas:      movimientos.filter(m => m.tipo === 'venta' && esteMes(m.fecha)).length,
+  };
   animales.forEach(a => { if (a.categoria && a.categoria in comp) (comp as Record<string,number>)[a.categoria]++; });
   const gdpProm = animales.length ? animales.reduce((s,a) => s + (a.gdp ?? 0), 0) / animales.length : 0;
   const kgProm  = animales.length ? Math.round(animales.reduce((s,a) => s + (a.peso_actual ?? 0), 0) / animales.length) : 0;
@@ -110,12 +123,15 @@ export default function AgroSenseApp() {
   const [clientes,  setClientes]  = useState<DbCliente[]>([]);
   const [gastos,    setGastos]    = useState<DbGasto[]>([]);
   const [movimientos, setMovimientos] = useState<DbMovimiento[]>([]);
+  const [vacunaciones, setVacunaciones] = useState<DbVacunacion[]>([]);
+  const [nacimientos, setNacimientos] = useState<DbNacimiento[]>([]);
+  const [bajas,     setBajas]     = useState<DbBaja[]>([]);
   const [pendingSync, setPendingSync] = useState(0);
 
   const currentFinca = fincas[fincaIdx];
 
   const loadFincaData = useCallback(async (finca_id: string) => {
-    const [pot, anim, alt, ev, prov, cli, gas, mov] = await Promise.all([
+    const [pot, anim, alt, ev, prov, cli, gas, mov, vac, nac, baj] = await Promise.all([
       getPotreros(finca_id),
       getAnimales(finca_id),
       getAlertas(finca_id),
@@ -124,6 +140,9 @@ export default function AgroSenseApp() {
       getClientes(finca_id),
       getGastos(finca_id),
       getMovimientos(finca_id),
+      getVacunaciones(finca_id),
+      getNacimientos(finca_id),
+      getBajas(finca_id),
     ]);
     setPotreros(pot);
     setAnimales(anim);
@@ -133,6 +152,9 @@ export default function AgroSenseApp() {
     setClientes(cli);
     setGastos(gas);
     setMovimientos(mov);
+    setVacunaciones(vac);
+    setNacimientos(nac);
+    setBajas(baj);
     setPendingSync(gas.filter(g => g.pendiente_sync).length);
   }, []);
 
@@ -186,7 +208,7 @@ export default function AgroSenseApp() {
   // Map DB data to app-layer types
   const potreroMap = Object.fromEntries(potreros.map(p => [p.id, p.nombre]));
   const appAnimals: Animal[] = animales.map(a => dbAnimalToAnimal(a, potreroMap[a.potrero_id ?? ''] ?? 'Sin potrero'));
-  const appFinca = currentFinca ? dbFincaToFinca(currentFinca, potreros, animales) : null;
+  const appFinca = currentFinca ? dbFincaToFinca(currentFinca, potreros, animales, nacimientos, bajas, movimientos) : null;
 
   const myMembresia = membresias.find(m => m.finca_id === currentFinca?.id);
   const currentRole: RoleKey = myMembresia?.rol ?? (isSuperadmin ? 'owner' : 'vaquero');
@@ -255,8 +277,11 @@ export default function AgroSenseApp() {
         {tab === 'animales' && (
           <AnimalesScreen
             animals={appAnimals}
+            fincaId={currentFinca?.id}
+            potreros={potreros}
             onOpenDrawer={() => setDrawerOpen(true)}
             onSelectAnimal={setSelectedAnimal}
+            onNacimientoRegistrado={() => currentFinca && loadFincaData(currentFinca.id)}
           />
         )}
         {tab === 'rfid' && (
@@ -272,7 +297,10 @@ export default function AgroSenseApp() {
         {tab === 'agenda' && (
           <AgendaScreen
             eventos={eventos}
+            fincaId={currentFinca?.id}
+            vacunaciones={vacunaciones}
             onOpenDrawer={() => setDrawerOpen(true)}
+            onVacunacionRegistrada={() => currentFinca && loadFincaData(currentFinca.id)}
           />
         )}
         {tab === 'finanzas' && (
@@ -325,8 +353,10 @@ export default function AgroSenseApp() {
         <div style={{ position:'fixed', inset:0, zIndex:40 }}>
           <AnimalProfile
             animal={selectedAnimal}
+            fincaId={currentFinca?.id}
             onClose={() => setSelectedAnimal(null)}
             onPesaje={() => { setTab('rfid'); setSelectedAnimal(null); }}
+            onBajaRegistrada={() => currentFinca && loadFincaData(currentFinca.id)}
           />
         </div>
       )}

@@ -79,6 +79,20 @@ export type DbIngreso = {
   movimiento_id: string | null; concepto: string; monto: number; fecha: string;
 };
 
+export type DbVacunacion = {
+  id: string; finca_id: string; ciclo: 1 | 2; anio: number; fecha: string;
+  titulo: string; notas: string | null; animales_count: number | null; pdf_path: string | null;
+};
+
+export type DbNacimiento = {
+  id: string; finca_id: string; animal_id: string | null; potrero_id: string | null;
+  fecha: string; sexo: string;
+};
+
+export type DbBaja = {
+  id: string; finca_id: string; animal_id: string | null; fecha: string; causa: string;
+};
+
 export type DbMembresia = {
   id: string; auth_user_id: string; finca_id: string; nombre: string; rol: RoleKey;
 };
@@ -158,6 +172,70 @@ export async function getGastos(finca_id: string): Promise<DbGasto[]> {
 export async function getMovimientos(finca_id: string): Promise<DbMovimiento[]> {
   const { data } = await supabase.from('Agrosense_movimientos').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false }).limit(30);
   return data ?? [];
+}
+
+export async function getVacunaciones(finca_id: string): Promise<DbVacunacion[]> {
+  const { data } = await supabase.from('Agrosense_vacunaciones').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false });
+  return (data ?? []) as DbVacunacion[];
+}
+
+export async function registrarVacunacion(
+  payload: Omit<DbVacunacion, 'id' | 'pdf_path'>,
+  pdfFile: File | null,
+): Promise<{ error: string | null }> {
+  let pdf_path: string | null = null;
+  if (pdfFile) {
+    const path = `${payload.finca_id}/${Date.now()}-${pdfFile.name}`;
+    const { error: uploadErr } = await supabase.storage.from('agrosense-ica').upload(path, pdfFile, { contentType: 'application/pdf' });
+    if (uploadErr) return { error: uploadErr.message };
+    pdf_path = path;
+  }
+  const { error } = await supabase.from('Agrosense_vacunaciones').insert({ ...payload, pdf_path });
+  return { error: error?.message ?? null };
+}
+
+export async function getVacunacionPdfUrl(pdf_path: string): Promise<string | null> {
+  const { data, error } = await supabase.storage.from('agrosense-ica').createSignedUrl(pdf_path, 60 * 10);
+  if (error) return null;
+  return data.signedUrl;
+}
+
+export async function getNacimientos(finca_id: string): Promise<DbNacimiento[]> {
+  const { data } = await supabase.from('Agrosense_nacimientos').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false });
+  return (data ?? []) as DbNacimiento[];
+}
+
+export async function registrarNacimiento(payload: {
+  finca_id: string; potrero_id: string | null; fecha: string; sexo: string;
+  arete: string; nombre: string; raza: string;
+}): Promise<{ error: string | null }> {
+  const categoria = 'Cría';
+  const { data: animal, error: animalErr } = await supabase.from('Agrosense_animales').insert({
+    finca_id: payload.finca_id, potrero_id: payload.potrero_id,
+    nombre: payload.nombre || null, arete: payload.arete, rfid: payload.arete,
+    raza: payload.raza, sexo: payload.sexo, categoria,
+    estado: 'green', estado_txt: 'Sano · recién nacido',
+    peso_actual: null, gdp: null, gdp_delta: null, dias_potrero: 0, activo: true,
+  }).select().single();
+  if (animalErr) return { error: animalErr.message };
+
+  const { error: nacErr } = await supabase.from('Agrosense_nacimientos').insert({
+    finca_id: payload.finca_id, animal_id: animal.id, potrero_id: payload.potrero_id,
+    fecha: payload.fecha, sexo: payload.sexo,
+  });
+  return { error: nacErr?.message ?? null };
+}
+
+export async function getBajas(finca_id: string): Promise<DbBaja[]> {
+  const { data } = await supabase.from('Agrosense_bajas').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false });
+  return (data ?? []) as DbBaja[];
+}
+
+export async function registrarBaja(payload: { finca_id: string; animal_id: string; fecha: string; causa: string }): Promise<{ error: string | null }> {
+  const { error: bajaErr } = await supabase.from('Agrosense_bajas').insert(payload);
+  if (bajaErr) return { error: bajaErr.message };
+  const { error: animalErr } = await supabase.from('Agrosense_animales').update({ activo: false, updated_at: new Date().toISOString() }).eq('id', payload.animal_id);
+  return { error: animalErr?.message ?? null };
 }
 
 export async function registrarPesaje(payload: Omit<DbPesaje, 'id'>): Promise<DbPesaje | null> {
