@@ -319,7 +319,14 @@ export default function AgroSenseApp() {
           <AdminScreen onOpenDrawer={() => setDrawerOpen(true)} />
         )}
         {tab === 'reportes' && (
-          <ReportesScreen onOpenDrawer={() => setDrawerOpen(true)} />
+          <ReportesScreen
+            onOpenDrawer={() => setDrawerOpen(true)}
+            role={currentRole}
+            fincaNombre={currentFinca?.nombre ?? ''}
+            animals={appAnimals}
+            gastos={gastos}
+            movimientos={movimientos}
+          />
         )}
       </div>
       </div>
