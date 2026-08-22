@@ -17,6 +17,7 @@ import RfidScreen from './screens/RfidScreen';
 import AgendaScreen from './screens/AgendaScreen';
 import FinanzasScreen from './screens/FinanzasScreen';
 import AdminScreen from './screens/AdminScreen';
+import ReportesScreen from './screens/ReportesScreen';
 import Drawer from './ui/Drawer';
 import AnimalProfile from './ui/AnimalProfile';
 import FincaPicker from './ui/FincaPicker';
@@ -251,7 +252,7 @@ export default function AgroSenseApp() {
         activeTab={tab}
         showAdmin={isSuperadmin}
         onClose={() => {}}
-        onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin'].includes(key)) setTab(key as Tab); }}
+        onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin','reportes'].includes(key)) setTab(key as Tab); }}
         onSignOut={handleSignOut}
       />
 
@@ -317,6 +318,9 @@ export default function AgroSenseApp() {
         {tab === 'admin' && isSuperadmin && (
           <AdminScreen onOpenDrawer={() => setDrawerOpen(true)} />
         )}
+        {tab === 'reportes' && (
+          <ReportesScreen onOpenDrawer={() => setDrawerOpen(true)} />
+        )}
       </div>
       </div>
 
@@ -344,7 +348,7 @@ export default function AgroSenseApp() {
             role={currentRole}
             showAdmin={isSuperadmin}
             onClose={() => setDrawerOpen(false)}
-            onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin'].includes(key)) setTab(key as Tab); }}
+            onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin','reportes'].includes(key)) setTab(key as Tab); }}
             onSignOut={handleSignOut}
           />
         </div>

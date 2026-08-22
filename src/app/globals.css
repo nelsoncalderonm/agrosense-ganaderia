@@ -67,13 +67,21 @@ body {
   .ag-hamburger { display: none !important; }
 
   .ag-main { margin-left: 240px; }
-  .ag-content-inner { max-width: 1180px; margin: 0 auto; }
+  /* width:100% is load-bearing here: as a flex child with auto margins,
+     .ag-content-inner would otherwise shrink-to-fit its content instead
+     of stretching, and just sit centered as a narrow mobile-width column
+     in the middle of the page. */
+  .ag-content-inner { width: 100%; max-width: 1180px; margin: 0 auto; box-sizing: border-box; }
 
   .rfid-header { padding-top: 28px !important; }
 
-  /* Inicio dashboard: two columns instead of one long mobile stack */
+  /* Inicio/Agenda dashboards: two columns instead of one long mobile stack */
   .ag-dash-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
   .ag-dash-left, .ag-dash-right { min-width: 0; }
+
+  /* Calendar grid cells are aspect-ratio:1 squares — left uncapped they'd
+     stretch to ~150px+ per day. Cap the card so cells stay a sane size. */
+  .ag-calendar-card { max-width: 420px; }
 
   /* Animales: card grid instead of a single-column list */
   .ag-animales-grid { display: grid !important; grid-template-columns: repeat(2, 1fr); gap: 8px; }

@@ -129,6 +129,11 @@ export async function getFincas(): Promise<DbFinca[]> {
   return sorted;
 }
 
+export async function crearFinca(payload: { nombre: string; ubicacion: string | null; hectareas: number | null }): Promise<{ error: string | null; id: string | null }> {
+  const { data, error } = await supabase.from('Agrosense_fincas').insert({ ...payload, activa: true }).select('id').single();
+  return { error: error?.message ?? null, id: data?.id ?? null };
+}
+
 export async function getPotreros(finca_id: string): Promise<DbPotrero[]> {
   const { data } = await supabase.from('Agrosense_potreros').select('*').eq('finca_id', finca_id).order('nombre');
   return data ?? [];

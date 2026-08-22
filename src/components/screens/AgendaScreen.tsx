@@ -177,7 +177,9 @@ export default function AgendaScreen({ onOpenDrawer, eventos, fincaId, vacunacio
         <div style={{ fontWeight: 800, fontSize: 22 }}>Calendario sanitario</div>
       </div>
 
-      <div style={{ background: '#fff', border: '1px solid #E1E8DD', borderRadius: 4, padding: '14px 14px 16px' }}>
+      <div className="ag-dash-grid">
+      <div className="ag-dash-left">
+      <div className="ag-calendar-card" style={{ background: '#fff', border: '1px solid #E1E8DD', borderRadius: 4, padding: '14px 14px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <span style={{ fontWeight: 700, fontSize: 15 }}>{monthNameCap}</span>
           <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, color: '#9DB39D' }}>{year}</span>
@@ -235,6 +237,9 @@ export default function AgendaScreen({ onOpenDrawer, eventos, fincaId, vacunacio
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
         Agregar evento
       </button>
+      </div>
+
+      <div className="ag-dash-right">
 
       {/* Vacunación por ciclo */}
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '28px 2px 11px' }}>
@@ -260,6 +265,8 @@ export default function AgendaScreen({ onOpenDrawer, eventos, fincaId, vacunacio
           onRegistrada={() => { setShowForm(false); onVacunacionRegistrada(); }}
         />
       )}
+      </div>
+      </div>
     </div>
   );
 }
