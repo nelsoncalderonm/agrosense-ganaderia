@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { money } from '@/data/agrosense';
-import { DbProveedor, DbCliente, DbGasto, DbMovimiento } from '@/lib/supabase';
+import { DbProveedor, DbCliente, DbGasto, DbMovimiento, crearProveedor, desactivarProveedor, crearGasto } from '@/lib/supabase';
 
 interface Props {
   onOpenDrawer: () => void;
   role: string;
+  fincaId?: string;
   proveedores: DbProveedor[];
   clientes: DbCliente[];
   gastos: DbGasto[];
@@ -22,9 +23,159 @@ const TIPO_HEX: Record<string, string> = {
   Veterinario: '#DC2626', Sanidad: '#7C3AED',
 };
 
-export default function FinanzasScreen({ onOpenDrawer, role, proveedores, clientes, gastos, movimientos, onRefresh }: Props) {
+const PROV_TIPOS = ['Insumos', 'Ganado', 'Transporte', 'Veterinario', 'Sanidad', 'Otro'];
+const VIAS_GASTO = ['Manual', 'Electrónica'];
+
+const inp: React.CSSProperties = {
+  width: '100%', height: 42, border: '1px solid #C5D2C0', borderRadius: 4,
+  padding: '0 12px', fontSize: 14, background: '#fff', outline: 'none',
+  fontFamily: 'inherit', color: '#1A2B1A', boxSizing: 'border-box',
+};
+const lbl: React.CSSProperties = {
+  fontSize: 10, color: '#6E8A6E', fontWeight: 700, letterSpacing: '.5px',
+  marginBottom: 4, display: 'block',
+};
+
+function CrearProveedorForm({ fincaId, onCancelar, onCreado }: { fincaId: string; onCancelar: () => void; onCreado: () => void }) {
+  const [nombre, setNombre] = useState('');
+  const [nit, setNit] = useState('');
+  const [ciudad, setCiudad] = useState('');
+  const [tipo, setTipo] = useState(PROV_TIPOS[0]);
+  const [telefono, setTelefono] = useState('');
+  const [email, setEmail] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const handleGuardar = async () => {
+    if (!nombre.trim()) { setErr('Nombre requerido'); return; }
+    setSaving(true); setErr(null);
+    const { error } = await crearProveedor({
+      finca_id: fincaId, nombre: nombre.trim(), nit: nit.trim() || null,
+      ciudad: ciudad.trim() || null, tipo, telefono: telefono.trim() || null, email: email.trim() || null,
+    });
+    setSaving(false);
+    if (error) { setErr(error); return; }
+    onCreado();
+  };
+
+  return (
+    <div className="animate-up" style={{ background: '#fff', border: '1px solid #86EFAC', borderRadius: 6, padding: '16px 14px', marginBottom: 13 }}>
+      <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 14 }}>Nuevo proveedor</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div><label style={lbl}>NOMBRE</label>
+          <input style={inp} value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Agroinsumos del Sinú" autoFocus />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div><label style={lbl}>NIT</label>
+            <input style={inp} value={nit} onChange={e => setNit(e.target.value)} placeholder="NIT" />
+          </div>
+          <div><label style={lbl}>CIUDAD</label>
+            <input style={inp} value={ciudad} onChange={e => setCiudad(e.target.value)} placeholder="Ciudad" />
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div><label style={lbl}>TIPO</label>
+            <select style={inp} value={tipo} onChange={e => setTipo(e.target.value)}>
+              {PROV_TIPOS.map(t => <option key={t}>{t}</option>)}
+            </select>
+          </div>
+          <div><label style={lbl}>TELÉFONO</label>
+            <input style={inp} value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="300 000 0000" />
+          </div>
+        </div>
+        <div><label style={lbl}>CORREO</label>
+          <input style={inp} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="correo@ejemplo.com" />
+        </div>
+        {err && <div style={{ fontSize: 12, color: '#DC2626', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{err}</div>}
+        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+          <button onClick={onCancelar} style={{ flex: 1, height: 46, border: '1px solid #C5D2C0', borderRadius: 4, background: '#fff', color: '#6E8A6E', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+          <button onClick={handleGuardar} disabled={saving} style={{ flex: 1.6, height: 46, border: 'none', borderRadius: 4, background: saving ? '#6E8A6E' : '#15A34A', color: '#fff', fontWeight: 800, fontSize: 13, cursor: saving ? 'default' : 'pointer' }}>
+            {saving ? 'Guardando…' : 'Guardar proveedor'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CrearGastoForm({ fincaId, proveedores, onCancelar, onCreado }: { fincaId: string; proveedores: DbProveedor[]; onCancelar: () => void; onCreado: () => void }) {
+  const [concepto, setConcepto] = useState('');
+  const [itemsDesc, setItemsDesc] = useState('');
+  const [monto, setMonto] = useState('');
+  const [proveedorId, setProveedorId] = useState('');
+  const [via, setVia] = useState(VIAS_GASTO[0]);
+  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const handleGuardar = async () => {
+    if (!concepto.trim() || !monto) { setErr('Concepto y monto requeridos'); return; }
+    setSaving(true); setErr(null);
+    const { error } = await crearGasto({
+      finca_id: fincaId, proveedor_id: proveedorId || null, concepto: concepto.trim(),
+      items_desc: itemsDesc.trim() || null, monto: parseFloat(monto), fecha, via,
+    });
+    setSaving(false);
+    if (error) { setErr(error); return; }
+    onCreado();
+  };
+
+  return (
+    <div className="animate-up" style={{ background: '#fff', border: '1px solid #86EFAC', borderRadius: 6, padding: '16px 14px', marginBottom: 16 }}>
+      <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 14 }}>Registrar gasto</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div><label style={lbl}>CONCEPTO</label>
+          <input style={inp} value={concepto} onChange={e => setConcepto(e.target.value)} placeholder="Ej: Concentrado levante" autoFocus />
+        </div>
+        <div><label style={lbl}>DETALLE (OPCIONAL)</label>
+          <input style={inp} value={itemsDesc} onChange={e => setItemsDesc(e.target.value)} placeholder="Ítems, cantidades…" />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div><label style={lbl}>MONTO</label>
+            <input style={inp} type="number" min={0} value={monto} onChange={e => setMonto(e.target.value)} placeholder="0" />
+          </div>
+          <div><label style={lbl}>FECHA</label>
+            <input style={inp} type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div><label style={lbl}>PROVEEDOR (OPCIONAL)</label>
+            <select style={inp} value={proveedorId} onChange={e => setProveedorId(e.target.value)}>
+              <option value="">Sin proveedor</option>
+              {proveedores.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+            </select>
+          </div>
+          <div><label style={lbl}>VÍA</label>
+            <select style={inp} value={via} onChange={e => setVia(e.target.value)}>
+              {VIAS_GASTO.map(v => <option key={v}>{v}</option>)}
+            </select>
+          </div>
+        </div>
+        {err && <div style={{ fontSize: 12, color: '#DC2626', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{err}</div>}
+        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+          <button onClick={onCancelar} style={{ flex: 1, height: 46, border: '1px solid #C5D2C0', borderRadius: 4, background: '#fff', color: '#6E8A6E', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+          <button onClick={handleGuardar} disabled={saving} style={{ flex: 1.6, height: 46, border: 'none', borderRadius: 4, background: saving ? '#6E8A6E' : '#15A34A', color: '#fff', fontWeight: 800, fontSize: 13, cursor: saving ? 'default' : 'pointer' }}>
+            {saving ? 'Guardando…' : 'Guardar gasto'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function FinanzasScreen({ onOpenDrawer, role, fincaId, proveedores, clientes, gastos, movimientos, onRefresh }: Props) {
   const [subTab, setSubTab] = useState<SubTab>('compras');
   const [provFilter, setProvFilter] = useState('Todos');
+  const [showGastoForm, setShowGastoForm] = useState(false);
+  const [showProvForm, setShowProvForm] = useState(false);
+  const [desactivando, setDesactivando] = useState<string | null>(null);
+
+  const handleDesactivarProveedor = async (id: string) => {
+    setDesactivando(id);
+    await desactivarProveedor(id);
+    setDesactivando(null);
+    onRefresh();
+  };
 
   const canFinanzas = role === 'owner' || role === 'contable';
   const totalGastos = gastos.reduce((s, g) => s + g.monto, 0);
@@ -90,6 +241,20 @@ export default function FinanzasScreen({ onOpenDrawer, role, proveedores, client
               </div>
             </div>
 
+            {fincaId && !showGastoForm && (
+              <button onClick={() => setShowGastoForm(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', marginBottom: 16, height: 46, border: 'none', borderRadius: 4, background: '#15A34A', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                Registrar gasto
+              </button>
+            )}
+            {fincaId && showGastoForm && (
+              <CrearGastoForm
+                fincaId={fincaId} proveedores={proveedores}
+                onCancelar={() => setShowGastoForm(false)}
+                onCreado={() => { setShowGastoForm(false); onRefresh(); }}
+              />
+            )}
+
             <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>Gastos registrados</div>
             <div className="ag-list-grid" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {gastos.map(g => (
@@ -123,6 +288,20 @@ export default function FinanzasScreen({ onOpenDrawer, role, proveedores, client
                 <div style={{ fontFamily: 'var(--font-jetbrains)', fontWeight: 700, fontSize: 26, marginTop: 4, color: '#15A34A' }}>{proveedores.filter(p => p.via_email).length}</div>
               </div>
             </div>
+            {fincaId && !showProvForm && (
+              <button onClick={() => setShowProvForm(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', marginBottom: 13, height: 46, border: 'none', borderRadius: 4, background: '#15A34A', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                Agregar proveedor
+              </button>
+            )}
+            {fincaId && showProvForm && (
+              <CrearProveedorForm
+                fincaId={fincaId}
+                onCancelar={() => setShowProvForm(false)}
+                onCreado={() => { setShowProvForm(false); onRefresh(); }}
+              />
+            )}
+
             <div className="scrollbar-none" style={{ display: 'flex', gap: 7, marginBottom: 13, overflowX: 'auto', paddingBottom: 2 }}>
               {provTipos.map(t => (
                 <button key={t} onClick={() => setProvFilter(t)} style={{
@@ -149,6 +328,13 @@ export default function FinanzasScreen({ onOpenDrawer, role, proveedores, client
                   {p.email && (
                     <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 10, color: '#6E8A6E', marginTop: 8 }}>{p.email}</div>
                   )}
+                  <button
+                    onClick={() => handleDesactivarProveedor(p.id)}
+                    disabled={desactivando === p.id}
+                    style={{ marginTop: 9, height: 32, padding: '0 12px', border: '1px solid #FCA5A5', borderRadius: 4, background: '#FEE2E2', color: '#DC2626', fontWeight: 700, fontSize: 11.5, cursor: desactivando === p.id ? 'default' : 'pointer' }}
+                  >
+                    {desactivando === p.id ? 'Desactivando…' : 'Desactivar'}
+                  </button>
                 </div>
               ))}
               {filteredProvs.length === 0 && <div style={{ textAlign: 'center', color: '#9DB39D', padding: '32px 0', fontFamily: 'var(--font-jetbrains)', fontSize: 12 }}>Sin proveedores</div>}

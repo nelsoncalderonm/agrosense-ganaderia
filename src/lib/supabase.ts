@@ -141,6 +141,26 @@ export async function crearFinca(payload: { nombre: string; ubicacion: string | 
   return { error: error?.message ?? null, id: data?.id ?? null };
 }
 
+export async function actualizarFinca(finca_id: string, payload: { nombre: string; ubicacion: string | null; hectareas: number | null }): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('Agrosense_fincas').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', finca_id);
+  return { error: error?.message ?? null };
+}
+
+export async function actualizarMembresia(id: string, payload: { nombre?: string; rol?: RoleKey }): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('Agrosense_membresias').update(payload).eq('id', id);
+  return { error: error?.message ?? null };
+}
+
+export async function eliminarMembresia(id: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('Agrosense_membresias').delete().eq('id', id);
+  return { error: error?.message ?? null };
+}
+
+export async function cambiarPassword(password: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.auth.updateUser({ password });
+  return { error: error?.message ?? null };
+}
+
 export async function getOrganizaciones(): Promise<DbOrganizacion[]> {
   const { data } = await supabase.from('Agrosense_organizaciones').select('*').eq('activa', true).order('nombre');
   return (data ?? []) as DbOrganizacion[];
@@ -181,6 +201,19 @@ export async function getProveedores(finca_id: string): Promise<DbProveedor[]> {
   return data ?? [];
 }
 
+export async function crearProveedor(payload: {
+  finca_id: string; nombre: string; nit: string | null; ciudad: string | null;
+  tipo: string | null; telefono: string | null; email: string | null;
+}): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('Agrosense_proveedores').insert({ ...payload, via_email: false, activo: true });
+  return { error: error?.message ?? null };
+}
+
+export async function desactivarProveedor(id: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('Agrosense_proveedores').update({ activo: false }).eq('id', id);
+  return { error: error?.message ?? null };
+}
+
 export async function getClientes(finca_id: string): Promise<DbCliente[]> {
   const { data } = await supabase.from('Agrosense_clientes').select('*').eq('finca_id', finca_id).eq('activo', true).order('nombre');
   return data ?? [];
@@ -189,6 +222,14 @@ export async function getClientes(finca_id: string): Promise<DbCliente[]> {
 export async function getGastos(finca_id: string): Promise<DbGasto[]> {
   const { data } = await supabase.from('Agrosense_gastos').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false }).limit(50);
   return data ?? [];
+}
+
+export async function crearGasto(payload: {
+  finca_id: string; proveedor_id: string | null; concepto: string;
+  items_desc: string | null; monto: number; fecha: string; via: string;
+}): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('Agrosense_gastos').insert({ ...payload, nit_proveedor: null, pendiente_sync: false });
+  return { error: error?.message ?? null };
 }
 
 export async function getMovimientos(finca_id: string): Promise<DbMovimiento[]> {

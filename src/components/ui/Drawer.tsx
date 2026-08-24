@@ -13,6 +13,7 @@ interface Props {
   variant?: 'sheet' | 'sidebar';
   activeTab?: string;
   showAdmin?: boolean;
+  onOpenFincaPicker?: () => void;
 }
 
 const MENU_ITEMS = [
@@ -30,7 +31,7 @@ const ROLE_LABEL: Record<RoleKey, string> = {
   owner: 'Propietario', admin: 'Administrador', vaquero: 'Vaquero', contable: 'Contable',
 };
 
-export default function Drawer({ open, finca, displayName, role, onClose, onNavigate, onSignOut, variant = 'sheet', activeTab, showAdmin }: Props) {
+export default function Drawer({ open, finca, displayName, role, onClose, onNavigate, onSignOut, variant = 'sheet', activeTab, showAdmin, onOpenFincaPicker }: Props) {
   const isSidebar = variant === 'sidebar';
   if (!isSidebar && !open) return null;
 
@@ -43,15 +44,30 @@ export default function Drawer({ open, finca, displayName, role, onClose, onNavi
   const body = (
     <>
       {/* Finca header */}
-      <div style={{ padding: '20px 20px 14px', borderBottom: '1px solid #E1E8DD' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 44, height: 44, borderRadius: 8, background: '#DCFCE7', border: '1px solid #15A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, color: '#15A34A', flexShrink: 0 }}>{finca.ini}</div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontWeight: 800, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{finca.nombre}</div>
-            <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, color: '#6E8A6E', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{finca.ubic} · {finca.animales} animales</div>
+      {onOpenFincaPicker ? (
+        <button onClick={onOpenFincaPicker} style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: '20px 20px 14px', borderBottom: '1px solid #E1E8DD' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 8, background: '#DCFCE7', border: '1px solid #15A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, color: '#15A34A', flexShrink: 0 }}>{finca.ini}</div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                <div style={{ fontWeight: 800, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{finca.nombre}</div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#15A34A" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M6 9l6 6 6-6"/></svg>
+              </div>
+              <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, color: '#6E8A6E', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{finca.ubic} · {finca.animales} animales</div>
+            </div>
+          </div>
+        </button>
+      ) : (
+        <div style={{ padding: '20px 20px 14px', borderBottom: '1px solid #E1E8DD' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 8, background: '#DCFCE7', border: '1px solid #15A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, color: '#15A34A', flexShrink: 0 }}>{finca.ini}</div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontWeight: 800, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{finca.nombre}</div>
+              <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, color: '#6E8A6E', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{finca.ubic} · {finca.animales} animales</div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Nav items */}
       <div style={{ padding: '8px 8px 0' }}>

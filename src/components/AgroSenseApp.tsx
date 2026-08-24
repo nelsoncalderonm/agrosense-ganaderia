@@ -6,7 +6,7 @@ import { Animal, Tab, RoleKey, CAT, ESTADO } from '@/data/agrosense';
 import {
   supabase, getFincas, getPotreros, getAnimales, getPesajesRecientes,
   getAlertas, getEventos, getProveedores, getClientes, getGastos, getMovimientos,
-  getVacunaciones, getNacimientos, getBajas,
+  getVacunaciones, getNacimientos, getBajas, getMembresiasFinca,
   registrarPesaje, getMisMembresias, getIsSuperadmin,
   DbFinca, DbPotrero, DbAnimal, DbAlerta, DbEvento, DbProveedor, DbCliente, DbGasto, DbMovimiento, DbPesaje, DbMembresia,
   DbVacunacion, DbNacimiento, DbBaja,
@@ -18,6 +18,7 @@ import AgendaScreen from './screens/AgendaScreen';
 import FinanzasScreen from './screens/FinanzasScreen';
 import AdminScreen from './screens/AdminScreen';
 import ReportesScreen from './screens/ReportesScreen';
+import AjustesScreen from './screens/AjustesScreen';
 import Drawer from './ui/Drawer';
 import AnimalProfile from './ui/AnimalProfile';
 import FincaPicker from './ui/FincaPicker';
@@ -128,11 +129,12 @@ export default function AgroSenseApp() {
   const [nacimientos, setNacimientos] = useState<DbNacimiento[]>([]);
   const [bajas,     setBajas]     = useState<DbBaja[]>([]);
   const [pendingSync, setPendingSync] = useState(0);
+  const [miembrosFinca, setMiembrosFinca] = useState<DbMembresia[]>([]);
 
   const currentFinca = fincas[fincaIdx];
 
   const loadFincaData = useCallback(async (finca_id: string) => {
-    const [pot, anim, alt, ev, prov, cli, gas, mov, vac, nac, baj] = await Promise.all([
+    const [pot, anim, alt, ev, prov, cli, gas, mov, vac, nac, baj, mie] = await Promise.all([
       getPotreros(finca_id),
       getAnimales(finca_id),
       getAlertas(finca_id),
@@ -144,6 +146,7 @@ export default function AgroSenseApp() {
       getVacunaciones(finca_id),
       getNacimientos(finca_id),
       getBajas(finca_id),
+      getMembresiasFinca(finca_id),
     ]);
     setPotreros(pot);
     setAnimales(anim);
@@ -156,6 +159,7 @@ export default function AgroSenseApp() {
     setVacunaciones(vac);
     setNacimientos(nac);
     setBajas(baj);
+    setMiembrosFinca(mie);
     setPendingSync(gas.filter(g => g.pendiente_sync).length);
   }, []);
 
@@ -252,8 +256,9 @@ export default function AgroSenseApp() {
         activeTab={tab}
         showAdmin={isSuperadmin}
         onClose={() => {}}
-        onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin','reportes'].includes(key)) setTab(key as Tab); }}
+        onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin','reportes','ajustes'].includes(key)) setTab(key as Tab); }}
         onSignOut={handleSignOut}
+        onOpenFincaPicker={fincas.length > 1 ? () => setFincaPickerOpen(true) : undefined}
       />
 
       {/* Screen content */}
@@ -308,6 +313,7 @@ export default function AgroSenseApp() {
           <FinanzasScreen
             onOpenDrawer={() => setDrawerOpen(true)}
             role={currentRole}
+            fincaId={currentFinca?.id}
             proveedores={proveedores}
             clientes={clientes}
             gastos={gastos}
@@ -326,6 +332,18 @@ export default function AgroSenseApp() {
             animals={appAnimals}
             gastos={gastos}
             movimientos={movimientos}
+          />
+        )}
+        {tab === 'ajustes' && (
+          <AjustesScreen
+            onOpenDrawer={() => setDrawerOpen(true)}
+            finca={currentFinca}
+            role={currentRole}
+            miembros={miembrosFinca}
+            miMembresiaId={myMembresia?.id}
+            displayName={displayName}
+            onFincaActualizada={() => currentFinca && loadFincaData(currentFinca.id)}
+            onMiembrosActualizados={() => currentFinca && loadFincaData(currentFinca.id)}
           />
         )}
       </div>
@@ -355,7 +373,7 @@ export default function AgroSenseApp() {
             role={currentRole}
             showAdmin={isSuperadmin}
             onClose={() => setDrawerOpen(false)}
-            onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin','reportes'].includes(key)) setTab(key as Tab); }}
+            onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin','reportes','ajustes'].includes(key)) setTab(key as Tab); }}
             onSignOut={handleSignOut}
           />
         </div>
