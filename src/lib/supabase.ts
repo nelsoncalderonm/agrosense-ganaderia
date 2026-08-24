@@ -219,6 +219,19 @@ export async function getClientes(finca_id: string): Promise<DbCliente[]> {
   return data ?? [];
 }
 
+export async function crearCliente(payload: {
+  finca_id: string; nombre: string; nit: string | null; ciudad: string | null;
+  tipo: string | null; telefono: string | null; email: string | null;
+}): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('Agrosense_clientes').insert({ ...payload, activo: true });
+  return { error: error?.message ?? null };
+}
+
+export async function desactivarCliente(id: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('Agrosense_clientes').update({ activo: false }).eq('id', id);
+  return { error: error?.message ?? null };
+}
+
 export async function getGastos(finca_id: string): Promise<DbGasto[]> {
   const { data } = await supabase.from('Agrosense_gastos').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false }).limit(50);
   return data ?? [];
@@ -235,6 +248,17 @@ export async function crearGasto(payload: {
 export async function getMovimientos(finca_id: string): Promise<DbMovimiento[]> {
   const { data } = await supabase.from('Agrosense_movimientos').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false }).limit(30);
   return data ?? [];
+}
+
+export async function crearMovimiento(payload: {
+  finca_id: string; tipo: 'venta' | 'compra'; fecha: string; contraparte: string | null;
+  animales_count: number; categoria: string | null; raza: string | null;
+  peso_prom_kg: number | null; precio_kg: number | null; total_cop: number | null;
+  costo_cop: number | null; utilidad_cop: number | null; transporte_cop: number | null;
+  notas: string | null;
+}): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('Agrosense_movimientos').insert(payload);
+  return { error: error?.message ?? null };
 }
 
 export async function getVacunaciones(finca_id: string): Promise<DbVacunacion[]> {
