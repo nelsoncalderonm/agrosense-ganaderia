@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { RoleKey } from '@/data/agrosense';
-import { supabase, getFincas, getMembresiasFinca, crearFinca, DbFinca, DbMembresia } from '@/lib/supabase';
+import { supabase, getFincas, getMembresiasFinca, crearFinca, DbFinca, DbMembresia, getOrganizaciones, crearOrganizacion, DbOrganizacion } from '@/lib/supabase';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -35,10 +35,71 @@ const lbl: React.CSSProperties = {
   marginBottom: 4, display: 'block',
 };
 
-function CrearFincaForm({ onCreada }: { onCreada: () => void }) {
+function CrearOrganizacionForm({ onCreada }: { onCreada: () => void }) {
+  const [nombre, setNombre] = useState('');
+  const [nit, setNit] = useState('');
+  const [contactoNombre, setContactoNombre] = useState('');
+  const [contactoEmail, setContactoEmail] = useState('');
+  const [contactoTelefono, setContactoTelefono] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const handleCrear = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nombre.trim()) return;
+    setSaving(true); setErr(null);
+    const { error } = await crearOrganizacion({
+      nombre: nombre.trim(),
+      nit: nit.trim() || null,
+      contacto_nombre: contactoNombre.trim() || null,
+      contacto_email: contactoEmail.trim() || null,
+      contacto_telefono: contactoTelefono.trim() || null,
+    });
+    setSaving(false);
+    if (error) { setErr(error); return; }
+    setNombre(''); setNit(''); setContactoNombre(''); setContactoEmail(''); setContactoTelefono('');
+    onCreada();
+  };
+
+  return (
+    <form onSubmit={handleCrear} style={{ background: '#fff', border: '1px solid #E1E8DD', borderRadius: 6, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div>
+        <label style={lbl}>NOMBRE DEL CLIENTE</label>
+        <input style={inp} value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Ganadería El Roble S.A.S." />
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div>
+          <label style={lbl}>NIT</label>
+          <input style={inp} value={nit} onChange={e => setNit(e.target.value)} placeholder="900.123.456-7" />
+        </div>
+        <div>
+          <label style={lbl}>CONTACTO</label>
+          <input style={inp} value={contactoNombre} onChange={e => setContactoNombre(e.target.value)} placeholder="Nombre del contacto" />
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div>
+          <label style={lbl}>CORREO</label>
+          <input style={inp} type="email" value={contactoEmail} onChange={e => setContactoEmail(e.target.value)} placeholder="correo@ejemplo.com" />
+        </div>
+        <div>
+          <label style={lbl}>TELÉFONO</label>
+          <input style={inp} value={contactoTelefono} onChange={e => setContactoTelefono(e.target.value)} placeholder="300 000 0000" />
+        </div>
+      </div>
+      {err && <div style={{ fontSize: 12, color: '#DC2626', background: '#FEE2E2', padding: '8px 10px', borderRadius: 4 }}>{err}</div>}
+      <button type="submit" disabled={saving} style={{ height: 46, border: 'none', borderRadius: 4, background: saving ? '#6E8A6E' : '#15A34A', color: '#fff', fontWeight: 800, fontSize: 13, cursor: saving ? 'default' : 'pointer' }}>
+        {saving ? 'Creando…' : 'Crear cliente'}
+      </button>
+    </form>
+  );
+}
+
+function CrearFincaForm({ organizaciones, onCreada }: { organizaciones: DbOrganizacion[]; onCreada: () => void }) {
   const [nombre, setNombre] = useState('');
   const [ubicacion, setUbicacion] = useState('');
   const [hectareas, setHectareas] = useState('');
+  const [organizacionId, setOrganizacionId] = useState('');
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -50,15 +111,23 @@ function CrearFincaForm({ onCreada }: { onCreada: () => void }) {
       nombre: nombre.trim(),
       ubicacion: ubicacion.trim() || null,
       hectareas: hectareas ? parseFloat(hectareas) : null,
+      organizacion_id: organizacionId || null,
     });
     setSaving(false);
     if (error) { setErr(error); return; }
-    setNombre(''); setUbicacion(''); setHectareas('');
+    setNombre(''); setUbicacion(''); setHectareas(''); setOrganizacionId('');
     onCreada();
   };
 
   return (
     <form onSubmit={handleCrear} style={{ background: '#fff', border: '1px solid #E1E8DD', borderRadius: 6, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div>
+        <label style={lbl}>CLIENTE DUEÑO</label>
+        <select style={inp} value={organizacionId} onChange={e => setOrganizacionId(e.target.value)}>
+          <option value="">Sin cliente asignado</option>
+          {organizaciones.map(o => <option key={o.id} value={o.id}>{o.nombre}</option>)}
+        </select>
+      </div>
       <div>
         <label style={lbl}>NOMBRE DE LA FINCA</label>
         <input style={inp} value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Finca Los Alpes" />
@@ -86,6 +155,9 @@ export default function AdminScreen({ onOpenDrawer }: Props) {
   const [fincaId, setFincaId] = useState('');
   const [miembros, setMiembros] = useState<DbMembresia[]>([]);
   const [loadingMiembros, setLoadingMiembros] = useState(false);
+  const [organizaciones, setOrganizaciones] = useState<DbOrganizacion[]>([]);
+
+  const reloadOrganizaciones = () => getOrganizaciones().then(setOrganizaciones);
 
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
@@ -100,7 +172,7 @@ export default function AdminScreen({ onOpenDrawer }: Props) {
     setFincaId(prev => (prev && f.some(x => x.id === prev)) ? prev : (f[0]?.id ?? ''));
   });
 
-  useEffect(() => { reloadFincas(); }, []);
+  useEffect(() => { reloadFincas(); reloadOrganizaciones(); }, []);
 
   useEffect(() => {
     if (!fincaId) return;
@@ -136,8 +208,11 @@ export default function AdminScreen({ onOpenDrawer }: Props) {
 
       <div className="ag-dash-grid" style={{ padding: '16px 16px 24px' }}>
         <div className="ag-dash-left">
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>Crear finca</div>
-          <CrearFincaForm onCreada={reloadFincas} />
+          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 10 }}>Crear cliente</div>
+          <CrearOrganizacionForm onCreada={reloadOrganizaciones} />
+
+          <div style={{ fontWeight: 700, fontSize: 14, margin: '22px 0 10px' }}>Crear finca</div>
+          <CrearFincaForm organizaciones={organizaciones} onCreada={reloadFincas} />
 
           <div style={{ fontWeight: 700, fontSize: 14, margin: '22px 0 10px' }}>Crear cuenta</div>
           <div style={{ marginBottom: 10 }}>
@@ -199,7 +274,7 @@ export default function AdminScreen({ onOpenDrawer }: Props) {
                 background: fincaId === f.id ? '#F0FDF4' : 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
               }}>
                 <span style={{ fontSize: 13.5, fontWeight: 600, color: fincaId === f.id ? '#15A34A' : '#1A2B1A' }}>{f.nombre}</span>
-                <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 10.5, color: '#9DB39D' }}>{f.ubicacion ?? ''}</span>
+                <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 10.5, color: '#9DB39D' }}>{organizaciones.find(o => o.id === f.organizacion_id)?.nombre ?? f.ubicacion ?? ''}</span>
               </button>
             ))}
             {fincas.length === 0 && <div style={{ padding: 14, fontSize: 12, color: '#9DB39D' }}>Sin fincas todavía</div>}

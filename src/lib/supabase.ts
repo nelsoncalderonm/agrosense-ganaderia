@@ -11,6 +11,13 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export type DbFinca = {
   id: string; nombre: string; ubicacion: string | null;
   hectareas: number | null; valor_cop: number | null; activa: boolean;
+  organizacion_id: string | null;
+};
+
+export type DbOrganizacion = {
+  id: string; nombre: string; nit: string | null;
+  contacto_nombre: string | null; contacto_email: string | null; contacto_telefono: string | null;
+  activa: boolean;
 };
 
 export type DbPotrero = {
@@ -129,8 +136,18 @@ export async function getFincas(): Promise<DbFinca[]> {
   return sorted;
 }
 
-export async function crearFinca(payload: { nombre: string; ubicacion: string | null; hectareas: number | null }): Promise<{ error: string | null; id: string | null }> {
+export async function crearFinca(payload: { nombre: string; ubicacion: string | null; hectareas: number | null; organizacion_id: string | null }): Promise<{ error: string | null; id: string | null }> {
   const { data, error } = await supabase.from('Agrosense_fincas').insert({ ...payload, activa: true }).select('id').single();
+  return { error: error?.message ?? null, id: data?.id ?? null };
+}
+
+export async function getOrganizaciones(): Promise<DbOrganizacion[]> {
+  const { data } = await supabase.from('Agrosense_organizaciones').select('*').eq('activa', true).order('nombre');
+  return (data ?? []) as DbOrganizacion[];
+}
+
+export async function crearOrganizacion(payload: { nombre: string; nit: string | null; contacto_nombre: string | null; contacto_email: string | null; contacto_telefono: string | null }): Promise<{ error: string | null; id: string | null }> {
+  const { data, error } = await supabase.from('Agrosense_organizaciones').insert({ ...payload, activa: true }).select('id').single();
   return { error: error?.message ?? null, id: data?.id ?? null };
 }
 
