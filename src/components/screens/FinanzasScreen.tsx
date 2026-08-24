@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { money } from '@/data/agrosense';
-import { DbProveedor, DbCliente, DbGasto, DbMovimiento, crearProveedor, desactivarProveedor, crearGasto } from '@/lib/supabase';
+import { DbProveedor, DbCliente, DbGasto, DbMovimiento, crearProveedor, desactivarProveedor, crearGasto, crearCliente, desactivarCliente, crearMovimiento } from '@/lib/supabase';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -25,6 +25,8 @@ const TIPO_HEX: Record<string, string> = {
 
 const PROV_TIPOS = ['Insumos', 'Ganado', 'Transporte', 'Veterinario', 'Sanidad', 'Otro'];
 const VIAS_GASTO = ['Manual', 'Electrónica'];
+const CLIENTE_TIPOS = ['Frigorífico', 'Subasta', 'Distribuidor', 'Otro'];
+const MOV_CATEGORIAS = ['Levante', 'Ceba', 'Cría'];
 
 const inp: React.CSSProperties = {
   width: '100%', height: 42, border: '1px solid #C5D2C0', borderRadius: 4,
@@ -163,16 +165,196 @@ function CrearGastoForm({ fincaId, proveedores, onCancelar, onCreado }: { fincaI
   );
 }
 
+function CrearClienteForm({ fincaId, onCancelar, onCreado }: { fincaId: string; onCancelar: () => void; onCreado: () => void }) {
+  const [nombre, setNombre] = useState('');
+  const [nit, setNit] = useState('');
+  const [ciudad, setCiudad] = useState('');
+  const [tipo, setTipo] = useState(CLIENTE_TIPOS[0]);
+  const [telefono, setTelefono] = useState('');
+  const [email, setEmail] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const handleGuardar = async () => {
+    if (!nombre.trim()) { setErr('Nombre requerido'); return; }
+    setSaving(true); setErr(null);
+    const { error } = await crearCliente({
+      finca_id: fincaId, nombre: nombre.trim(), nit: nit.trim() || null,
+      ciudad: ciudad.trim() || null, tipo, telefono: telefono.trim() || null, email: email.trim() || null,
+    });
+    setSaving(false);
+    if (error) { setErr(error); return; }
+    onCreado();
+  };
+
+  return (
+    <div className="animate-up" style={{ background: '#fff', border: '1px solid #86EFAC', borderRadius: 6, padding: '16px 14px', marginBottom: 13 }}>
+      <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 14 }}>Nuevo cliente</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div><label style={lbl}>NOMBRE</label>
+          <input style={inp} value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Frigorífico Vijagual" autoFocus />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div><label style={lbl}>NIT</label>
+            <input style={inp} value={nit} onChange={e => setNit(e.target.value)} placeholder="NIT" />
+          </div>
+          <div><label style={lbl}>CIUDAD</label>
+            <input style={inp} value={ciudad} onChange={e => setCiudad(e.target.value)} placeholder="Ciudad" />
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div><label style={lbl}>TIPO</label>
+            <select style={inp} value={tipo} onChange={e => setTipo(e.target.value)}>
+              {CLIENTE_TIPOS.map(t => <option key={t}>{t}</option>)}
+            </select>
+          </div>
+          <div><label style={lbl}>TELÉFONO</label>
+            <input style={inp} value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="300 000 0000" />
+          </div>
+        </div>
+        <div><label style={lbl}>CORREO</label>
+          <input style={inp} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="correo@ejemplo.com" />
+        </div>
+        {err && <div style={{ fontSize: 12, color: '#DC2626', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{err}</div>}
+        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+          <button onClick={onCancelar} style={{ flex: 1, height: 46, border: '1px solid #C5D2C0', borderRadius: 4, background: '#fff', color: '#6E8A6E', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+          <button onClick={handleGuardar} disabled={saving} style={{ flex: 1.6, height: 46, border: 'none', borderRadius: 4, background: saving ? '#6E8A6E' : '#15A34A', color: '#fff', fontWeight: 800, fontSize: 13, cursor: saving ? 'default' : 'pointer' }}>
+            {saving ? 'Guardando…' : 'Guardar cliente'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CrearMovimientoForm({ fincaId, onCancelar, onCreado }: { fincaId: string; onCancelar: () => void; onCreado: () => void }) {
+  const [tipo, setTipo] = useState<'venta' | 'compra'>('venta');
+  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
+  const [contraparte, setContraparte] = useState('');
+  const [animalesCount, setAnimalesCount] = useState('');
+  const [categoria, setCategoria] = useState(MOV_CATEGORIAS[1]);
+  const [raza, setRaza] = useState('');
+  const [pesoPromKg, setPesoPromKg] = useState('');
+  const [precioKg, setPrecioKg] = useState('');
+  const [costoCop, setCostoCop] = useState('');
+  const [transporteCop, setTransporteCop] = useState('');
+  const [notas, setNotas] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const nAnimales = parseInt(animalesCount, 10) || 0;
+  const nPeso = parseFloat(pesoPromKg) || 0;
+  const nPrecio = parseFloat(precioKg) || 0;
+  const totalVentaCalc = nAnimales * nPeso * nPrecio;
+
+  const handleGuardar = async () => {
+    if (!animalesCount || !pesoPromKg) { setErr('Cantidad de animales y peso promedio requeridos'); return; }
+    setSaving(true); setErr(null);
+    const { error } = await crearMovimiento({
+      finca_id: fincaId, tipo, fecha, contraparte: contraparte.trim() || null,
+      animales_count: nAnimales, categoria, raza: raza.trim() || null,
+      peso_prom_kg: nPeso || null,
+      precio_kg: tipo === 'venta' ? (nPrecio || null) : null,
+      total_cop: tipo === 'venta' ? (totalVentaCalc || null) : null,
+      costo_cop: tipo === 'compra' ? (parseFloat(costoCop) || null) : null,
+      utilidad_cop: null,
+      transporte_cop: transporteCop ? parseFloat(transporteCop) : null,
+      notas: notas.trim() || null,
+    });
+    setSaving(false);
+    if (error) { setErr(error); return; }
+    onCreado();
+  };
+
+  return (
+    <div className="animate-up" style={{ background: '#fff', border: '1px solid #86EFAC', borderRadius: 6, padding: '16px 14px', marginBottom: 16 }}>
+      <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 14 }}>Registrar movimiento de ganado</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {(['venta', 'compra'] as const).map(t => (
+            <button key={t} type="button" onClick={() => setTipo(t)} style={{
+              flex: 1, height: 42, borderRadius: 4, cursor: 'pointer', fontWeight: 700, fontSize: 13, textTransform: 'capitalize',
+              border: `1px solid ${tipo === t ? (t === 'venta' ? '#15A34A' : '#2563EB') : '#C5D2C0'}`,
+              background: tipo === t ? (t === 'venta' ? '#DCFCE7' : '#DBEAFE') : '#fff',
+              color: tipo === t ? (t === 'venta' ? '#15A34A' : '#2563EB') : '#6E8A6E',
+            }}>{t}</button>
+          ))}
+        </div>
+        <div><label style={lbl}>{tipo === 'venta' ? 'COMPRADOR' : 'VENDEDOR'}</label>
+          <input style={inp} value={contraparte} onChange={e => setContraparte(e.target.value)} placeholder="Nombre o razón social" autoFocus />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div><label style={lbl}>FECHA</label>
+            <input style={inp} type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
+          </div>
+          <div><label style={lbl}># ANIMALES</label>
+            <input style={inp} type="number" min={0} value={animalesCount} onChange={e => setAnimalesCount(e.target.value)} placeholder="0" />
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div><label style={lbl}>CATEGORÍA</label>
+            <select style={inp} value={categoria} onChange={e => setCategoria(e.target.value)}>
+              {MOV_CATEGORIAS.map(c => <option key={c}>{c}</option>)}
+            </select>
+          </div>
+          <div><label style={lbl}>RAZA</label>
+            <input style={inp} value={raza} onChange={e => setRaza(e.target.value)} placeholder="Ej: Brahman" />
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div><label style={lbl}>PESO PROM (KG)</label>
+            <input style={inp} type="number" min={0} value={pesoPromKg} onChange={e => setPesoPromKg(e.target.value)} placeholder="0" />
+          </div>
+          {tipo === 'venta' ? (
+            <div><label style={lbl}>PRECIO/KG</label>
+              <input style={inp} type="number" min={0} value={precioKg} onChange={e => setPrecioKg(e.target.value)} placeholder="0" />
+            </div>
+          ) : (
+            <div><label style={lbl}>COSTO TOTAL</label>
+              <input style={inp} type="number" min={0} value={costoCop} onChange={e => setCostoCop(e.target.value)} placeholder="0" />
+            </div>
+          )}
+        </div>
+        {tipo === 'venta' && nAnimales > 0 && nPeso > 0 && nPrecio > 0 && (
+          <div style={{ fontSize: 12, color: '#15A34A', fontWeight: 700 }}>Total estimado: {money(totalVentaCalc)}</div>
+        )}
+        <div><label style={lbl}>TRANSPORTE (OPCIONAL)</label>
+          <input style={inp} type="number" min={0} value={transporteCop} onChange={e => setTransporteCop(e.target.value)} placeholder="0" />
+        </div>
+        <div><label style={lbl}>NOTAS (OPCIONAL)</label>
+          <input style={inp} value={notas} onChange={e => setNotas(e.target.value)} placeholder="Observaciones" />
+        </div>
+        {err && <div style={{ fontSize: 12, color: '#DC2626', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{err}</div>}
+        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+          <button onClick={onCancelar} style={{ flex: 1, height: 46, border: '1px solid #C5D2C0', borderRadius: 4, background: '#fff', color: '#6E8A6E', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+          <button onClick={handleGuardar} disabled={saving} style={{ flex: 1.6, height: 46, border: 'none', borderRadius: 4, background: saving ? '#6E8A6E' : '#15A34A', color: '#fff', fontWeight: 800, fontSize: 13, cursor: saving ? 'default' : 'pointer' }}>
+            {saving ? 'Guardando…' : 'Guardar movimiento'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function FinanzasScreen({ onOpenDrawer, role, fincaId, proveedores, clientes, gastos, movimientos, onRefresh }: Props) {
   const [subTab, setSubTab] = useState<SubTab>('compras');
   const [provFilter, setProvFilter] = useState('Todos');
   const [showGastoForm, setShowGastoForm] = useState(false);
   const [showProvForm, setShowProvForm] = useState(false);
+  const [showClienteForm, setShowClienteForm] = useState(false);
+  const [showMovForm, setShowMovForm] = useState(false);
   const [desactivando, setDesactivando] = useState<string | null>(null);
 
   const handleDesactivarProveedor = async (id: string) => {
     setDesactivando(id);
     await desactivarProveedor(id);
+    setDesactivando(null);
+    onRefresh();
+  };
+
+  const handleDesactivarCliente = async (id: string) => {
+    setDesactivando(id);
+    await desactivarCliente(id);
     setDesactivando(null);
     onRefresh();
   };
@@ -355,12 +537,33 @@ export default function FinanzasScreen({ onOpenDrawer, role, fincaId, proveedore
                 <div style={{ fontFamily: 'var(--font-jetbrains)', fontWeight: 700, fontSize: 20, marginTop: 4, color: '#15A34A' }}>{money(totalVentas)}</div>
               </div>
             </div>
+            {fincaId && !showClienteForm && (
+              <button onClick={() => setShowClienteForm(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', marginBottom: 13, height: 46, border: 'none', borderRadius: 4, background: '#15A34A', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                Agregar cliente
+              </button>
+            )}
+            {fincaId && showClienteForm && (
+              <CrearClienteForm
+                fincaId={fincaId}
+                onCancelar={() => setShowClienteForm(false)}
+                onCreado={() => { setShowClienteForm(false); onRefresh(); }}
+              />
+            )}
+
             <div className="ag-list-grid" style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
               {clientes.map(c => (
                 <div key={c.id} style={{ background: '#fff', border: '1px solid #E1E8DD', borderLeft: `3px solid ${TIPO_HEX[c.tipo ?? ''] || '#15A34A'}`, borderRadius: 4, padding: 13 }}>
                   <div style={{ fontSize: 14.5, fontWeight: 700 }}>{c.nombre}</div>
                   <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 10.5, color: '#9DB39D', marginTop: 3 }}>{c.nit ?? '—'} · {c.ciudad ?? '—'}</div>
                   {c.tipo && <div style={{ fontSize: 11.5, color: '#6E8A6E', marginTop: 4 }}>{c.tipo}</div>}
+                  <button
+                    onClick={() => handleDesactivarCliente(c.id)}
+                    disabled={desactivando === c.id}
+                    style={{ marginTop: 9, height: 32, padding: '0 12px', border: '1px solid #FCA5A5', borderRadius: 4, background: '#FEE2E2', color: '#DC2626', fontWeight: 700, fontSize: 11.5, cursor: desactivando === c.id ? 'default' : 'pointer' }}
+                  >
+                    {desactivando === c.id ? 'Desactivando…' : 'Desactivar'}
+                  </button>
                 </div>
               ))}
               {clientes.length === 0 && <div style={{ textAlign: 'center', color: '#9DB39D', padding: '32px 0', fontFamily: 'var(--font-jetbrains)', fontSize: 12 }}>Sin clientes</div>}
@@ -381,6 +584,21 @@ export default function FinanzasScreen({ onOpenDrawer, role, fincaId, proveedore
                 <div style={{ fontFamily: 'var(--font-jetbrains)', fontWeight: 700, fontSize: 20, marginTop: 4, color: '#DC2626' }}>{money(totalCompras)}</div>
               </div>
             </div>
+
+            {fincaId && !showMovForm && (
+              <button onClick={() => setShowMovForm(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', marginBottom: 16, height: 46, border: 'none', borderRadius: 4, background: '#15A34A', color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+                Registrar movimiento
+              </button>
+            )}
+            {fincaId && showMovForm && (
+              <CrearMovimientoForm
+                fincaId={fincaId}
+                onCancelar={() => setShowMovForm(false)}
+                onCreado={() => { setShowMovForm(false); onRefresh(); }}
+              />
+            )}
+
             <div className="ag-list-grid" style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
               {movimientos.map(m => {
                 const isVenta = m.tipo === 'venta';
