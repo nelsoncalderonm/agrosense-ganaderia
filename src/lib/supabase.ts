@@ -100,6 +100,14 @@ export type DbBaja = {
   id: string; finca_id: string; animal_id: string | null; fecha: string; causa: string;
 };
 
+export type AnimalEventoTipo = 'nacimiento' | 'compra' | 'traslado' | 'venta' | 'baja';
+
+export type DbAnimalEvento = {
+  id: string; animal_id: string; finca_id: string; tipo: AnimalEventoTipo;
+  fecha: string; peso_kg: number | null; finca_origen_id: string | null;
+  contraparte: string | null; notas: string | null;
+};
+
 export type DbMembresia = {
   id: string; auth_user_id: string; finca_id: string; nombre: string; rol: RoleKey;
 };
@@ -294,7 +302,7 @@ export async function getNacimientos(finca_id: string): Promise<DbNacimiento[]> 
 
 export async function registrarNacimiento(payload: {
   finca_id: string; potrero_id: string | null; fecha: string; sexo: string;
-  arete: string; nombre: string; raza: string;
+  arete: string; nombre: string; raza: string; peso_kg: number | null;
 }): Promise<{ error: string | null }> {
   const categoria = 'Cría';
   const { data: animal, error: animalErr } = await supabase.from('Agrosense_animales').insert({
@@ -302,7 +310,7 @@ export async function registrarNacimiento(payload: {
     nombre: payload.nombre || null, arete: payload.arete, rfid: payload.arete,
     raza: payload.raza, sexo: payload.sexo, categoria,
     estado: 'green', estado_txt: 'Sano · recién nacido',
-    peso_actual: null, gdp: null, gdp_delta: null, dias_potrero: 0, activo: true,
+    peso_actual: payload.peso_kg, gdp: null, gdp_delta: null, dias_potrero: 0, activo: true,
   }).select().single();
   if (animalErr) return { error: animalErr.message };
 
@@ -310,7 +318,76 @@ export async function registrarNacimiento(payload: {
     finca_id: payload.finca_id, animal_id: animal.id, potrero_id: payload.potrero_id,
     fecha: payload.fecha, sexo: payload.sexo,
   });
-  return { error: nacErr?.message ?? null };
+  if (nacErr) return { error: nacErr.message };
+
+  const { error: evErr } = await supabase.from('Agrosense_animal_eventos').insert({
+    animal_id: animal.id, finca_id: payload.finca_id, tipo: 'nacimiento',
+    fecha: payload.fecha, peso_kg: payload.peso_kg, finca_origen_id: null,
+    contraparte: null, notas: 'Nació en la finca',
+  });
+  return { error: evErr?.message ?? null };
+}
+
+export async function getAnimalEventos(animal_id: string): Promise<DbAnimalEvento[]> {
+  const { data } = await supabase.from('Agrosense_animal_eventos').select('*').eq('animal_id', animal_id).order('fecha', { ascending: true });
+  return (data ?? []) as DbAnimalEvento[];
+}
+
+export async function registrarCompraAnimal(payload: {
+  finca_id: string; potrero_id: string | null; nombre: string; arete: string;
+  raza: string; sexo: string; categoria: string; peso_kg: number | null;
+  origen: 'nacio' | 'comprado'; proveedor: string | null; fecha: string;
+}): Promise<{ error: string | null }> {
+  const { data: animal, error: animalErr } = await supabase.from('Agrosense_animales').insert({
+    finca_id: payload.finca_id, potrero_id: payload.potrero_id,
+    nombre: payload.nombre.trim() || null, arete: payload.arete, rfid: payload.arete,
+    raza: payload.raza, sexo: payload.sexo, categoria: payload.categoria,
+    estado: 'green', estado_txt: 'Sano · recién registrado',
+    peso_actual: payload.peso_kg, gdp: null, gdp_delta: null, dias_potrero: 0, activo: true,
+  }).select('id').single();
+  if (animalErr) return { error: animalErr.message };
+
+  const { error: evErr } = await supabase.from('Agrosense_animal_eventos').insert({
+    animal_id: animal.id, finca_id: payload.finca_id,
+    tipo: payload.origen === 'nacio' ? 'nacimiento' : 'compra',
+    fecha: payload.fecha, peso_kg: payload.peso_kg, finca_origen_id: null,
+    contraparte: payload.origen === 'comprado' ? payload.proveedor : null,
+    notas: payload.origen === 'nacio' ? 'Nació en la finca' : null,
+  });
+  return { error: evErr?.message ?? null };
+}
+
+export async function registrarVenta(payload: {
+  animal_id: string; finca_id: string; fecha: string; peso_kg: number | null;
+  comprador: string | null; notas: string | null;
+}): Promise<{ error: string | null }> {
+  const { error: evErr } = await supabase.from('Agrosense_animal_eventos').insert({
+    animal_id: payload.animal_id, finca_id: payload.finca_id, tipo: 'venta',
+    fecha: payload.fecha, peso_kg: payload.peso_kg, finca_origen_id: null,
+    contraparte: payload.comprador, notas: payload.notas,
+  });
+  if (evErr) return { error: evErr.message };
+
+  const { error: animalErr } = await supabase.from('Agrosense_animales').update({
+    activo: false, updated_at: new Date().toISOString(),
+  }).eq('id', payload.animal_id);
+  return { error: animalErr?.message ?? null };
+}
+
+export async function trasladarAnimal(payload: {
+  animal_id: string; finca_origen_id: string; finca_destino_id: string; fecha: string; notas: string | null;
+}): Promise<{ error: string | null }> {
+  const { error: evErr } = await supabase.from('Agrosense_animal_eventos').insert({
+    animal_id: payload.animal_id, finca_id: payload.finca_destino_id, tipo: 'traslado',
+    fecha: payload.fecha, peso_kg: null, finca_origen_id: payload.finca_origen_id,
+    contraparte: null, notas: payload.notas,
+  });
+  if (evErr) return { error: evErr.message };
+
+  const { error: animalErr } = await supabase.from('Agrosense_animales').update({
+    finca_id: payload.finca_destino_id, potrero_id: null, updated_at: new Date().toISOString(),
+  }).eq('id', payload.animal_id);
+  return { error: animalErr?.message ?? null };
 }
 
 export async function getBajas(finca_id: string): Promise<DbBaja[]> {
@@ -321,6 +398,14 @@ export async function getBajas(finca_id: string): Promise<DbBaja[]> {
 export async function registrarBaja(payload: { finca_id: string; animal_id: string; fecha: string; causa: string }): Promise<{ error: string | null }> {
   const { error: bajaErr } = await supabase.from('Agrosense_bajas').insert(payload);
   if (bajaErr) return { error: bajaErr.message };
+
+  const { error: evErr } = await supabase.from('Agrosense_animal_eventos').insert({
+    animal_id: payload.animal_id, finca_id: payload.finca_id, tipo: 'baja',
+    fecha: payload.fecha, peso_kg: null, finca_origen_id: null,
+    contraparte: payload.causa, notas: null,
+  });
+  if (evErr) return { error: evErr.message };
+
   const { error: animalErr } = await supabase.from('Agrosense_animales').update({ activo: false, updated_at: new Date().toISOString() }).eq('id', payload.animal_id);
   return { error: animalErr?.message ?? null };
 }

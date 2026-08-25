@@ -383,9 +383,12 @@ export default function AgroSenseApp() {
           <AnimalProfile
             animal={selectedAnimal}
             fincaId={currentFinca?.id}
+            fincas={fincas}
             onClose={() => setSelectedAnimal(null)}
             onPesaje={() => { setTab('rfid'); setSelectedAnimal(null); }}
             onBajaRegistrada={() => currentFinca && loadFincaData(currentFinca.id)}
+            onVentaRegistrada={() => currentFinca && loadFincaData(currentFinca.id)}
+            onTrasladoRegistrado={() => currentFinca && loadFincaData(currentFinca.id)}
           />
         </div>
       )}
