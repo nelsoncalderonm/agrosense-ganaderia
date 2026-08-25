@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { Animal, RFID_RECENT, ESTADO, CAT, gHexFor, gdpTxt } from '@/data/agrosense';
-import { supabase } from '@/lib/supabase';
+import { registrarCompraAnimal } from '@/lib/supabase';
 import type { DbPotrero } from '@/lib/supabase';
 import { useBluetooth } from '@/hooks/useBluetooth';
 
@@ -79,22 +79,23 @@ function CrearAnimalForm({
   const [cat,       setCat]       = useState<'Levante'|'Ceba'|'Cría'>('Ceba');
   const [pesoKg,    setPesoKg]    = useState('');
   const [potreroId, setPotreroId] = useState(potreros[0]?.id ?? '');
+  const [origen,    setOrigen]    = useState<'nacio'|'comprado'>('comprado');
+  const [proveedor, setProveedor] = useState('');
   const [saving,    setSaving]    = useState(false);
   const [err,       setErr]       = useState<string|null>(null);
 
   const handleGuardar = async () => {
     if (!nombre.trim()) { setErr('Nombre requerido'); return; }
     setSaving(true); setErr(null);
-    const { error } = await supabase.from('Agrosense_animales').insert({
+    const { error } = await registrarCompraAnimal({
       finca_id: fincaId, potrero_id: potreroId || null,
-      nombre: nombre.trim(), arete, rfid: arete,
-      raza, sexo, categoria: cat,
-      estado: 'green', estado_txt: 'Sano · recién registrado',
-      peso_actual: pesoKg ? parseFloat(pesoKg) : null,
-      gdp: null, gdp_delta: null, dias_potrero: 0, activo: true,
+      nombre: nombre.trim(), arete, raza, sexo, categoria: cat,
+      peso_kg: pesoKg ? parseFloat(pesoKg) : null,
+      origen, proveedor: origen === 'comprado' ? (proveedor.trim() || null) : null,
+      fecha: new Date().toISOString().slice(0, 10),
     });
     setSaving(false);
-    if (error) { setErr(error.message); return; }
+    if (error) { setErr(error); return; }
     onCreado();
   };
 
@@ -146,6 +147,24 @@ function CrearAnimalForm({
             <input style={inp} type="number" value={pesoKg} onChange={e => setPesoKg(e.target.value)} placeholder="0" min={0} />
           </div>
         </div>
+        <div>
+          <label style={lbl}>ORIGEN</label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {(['comprado', 'nacio'] as const).map(o => (
+              <button key={o} type="button" onClick={() => setOrigen(o)} style={{
+                flex: 1, height: 40, borderRadius: 4, cursor: 'pointer', fontWeight: 700, fontSize: 12.5,
+                border: `1px solid ${origen === o ? '#15A34A' : '#C5D2C0'}`,
+                background: origen === o ? '#DCFCE7' : '#fff',
+                color: origen === o ? '#15A34A' : '#6E8A6E',
+              }}>{o === 'comprado' ? 'Comprado' : 'Nació en la finca'}</button>
+            ))}
+          </div>
+        </div>
+        {origen === 'comprado' && (
+          <div><label style={lbl}>PROVEEDOR / VENDEDOR</label>
+            <input style={inp} value={proveedor} onChange={e => setProveedor(e.target.value)} placeholder="Nombre de quién se compró" />
+          </div>
+        )}
         {potreros.length > 0 && (
           <div><label style={lbl}>POTRERO</label>
             <select style={inp} value={potreroId} onChange={e => setPotreroId(e.target.value)}>

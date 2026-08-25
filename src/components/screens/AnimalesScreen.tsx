@@ -26,6 +26,7 @@ function NacimientoForm({
   const [sexo, setSexo] = useState(SEXOS[0]);
   const [raza, setRaza] = useState(RAZAS[0]);
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
+  const [pesoKg, setPesoKg] = useState('');
   const [potreroId, setPotreroId] = useState(potreros[0]?.id ?? '');
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -46,6 +47,7 @@ function NacimientoForm({
     const { error } = await registrarNacimiento({
       finca_id: fincaId, potrero_id: potreroId || null, fecha, sexo,
       arete: arete.trim(), nombre: nombre.trim(), raza,
+      peso_kg: pesoKg ? parseFloat(pesoKg) : null,
     });
     setSaving(false);
     if (error) { setErr(error); return; }
@@ -80,15 +82,18 @@ function NacimientoForm({
           <div><label style={lbl}>FECHA</label>
             <input style={inp} type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
           </div>
-          {potreros.length > 0 && (
-            <div><label style={lbl}>POTRERO</label>
-              <select style={inp} value={potreroId} onChange={e => setPotreroId(e.target.value)}>
-                <option value="">Sin asignar</option>
-                {potreros.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-              </select>
-            </div>
-          )}
+          <div><label style={lbl}>PESO AL NACER (KG, OPCIONAL)</label>
+            <input style={inp} type="number" min={0} value={pesoKg} onChange={e => setPesoKg(e.target.value)} placeholder="0" />
+          </div>
         </div>
+        {potreros.length > 0 && (
+          <div><label style={lbl}>POTRERO</label>
+            <select style={inp} value={potreroId} onChange={e => setPotreroId(e.target.value)}>
+              <option value="">Sin asignar</option>
+              {potreros.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+            </select>
+          </div>
+        )}
         {err && <div style={{ fontSize: 12, color: '#DC2626', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{err}</div>}
         <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
           <button onClick={onCancelar} style={{ flex: 1, height: 46, border: '1px solid #C5D2C0', borderRadius: 4, background: '#fff', color: '#6E8A6E', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
