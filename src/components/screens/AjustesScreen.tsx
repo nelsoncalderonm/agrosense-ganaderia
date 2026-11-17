@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { RoleKey } from '@/data/agrosense';
+import TableroTvCard from './TableroTvCard';
 import { DbFinca, DbMembresia, actualizarFinca, actualizarMembresia, eliminarMembresia, cambiarPassword } from '@/lib/supabase';
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
   displayName: string;
   onFincaActualizada: () => void;
   onMiembrosActualizados: () => void;
+  codigoTv?: string | null;
 }
 
 const ROLE_OPTIONS: { value: RoleKey; label: string }[] = [
@@ -190,8 +192,9 @@ function CuentaForm({ displayName, miMembresiaId, onNombreActualizado }: { displ
   );
 }
 
-export default function AjustesScreen({ onOpenDrawer, finca, role, miembros, miMembresiaId, displayName, onFincaActualizada, onMiembrosActualizados }: Props) {
+export default function AjustesScreen({ onOpenDrawer, finca, role, miembros, miMembresiaId, displayName, onFincaActualizada, onMiembrosActualizados, codigoTv }: Props) {
   const isOwner = role === 'owner';
+  const puedeTv = role === 'owner' || role === 'admin';
 
   return (
     <div style={{ paddingBottom: 90 }}>
@@ -207,6 +210,10 @@ export default function AjustesScreen({ onOpenDrawer, finca, role, miembros, miM
 
         {isOwner && finca && (
           <FincaForm finca={finca} onGuardado={onFincaActualizada} />
+        )}
+
+        {puedeTv && finca && (
+          <TableroTvCard key={finca.id} fincaId={finca.id} codigoInicial={codigoTv} />
         )}
 
         {isOwner && (
