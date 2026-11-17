@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Animal, CAT, ESTADO, gHexFor, gdpTxt } from '@/data/agrosense';
-import { registrarNacimiento } from '@/lib/supabase';
+import { registrarAnimalOffline } from '@/lib/offline/acciones';
 import type { DbPotrero } from '@/lib/supabase';
 
 interface Props {
@@ -44,9 +44,9 @@ function NacimientoForm({
   const handleGuardar = async () => {
     if (!arete.trim()) { setErr('Arete requerido'); return; }
     setSaving(true); setErr(null);
-    const { error } = await registrarNacimiento({
+    const { error } = await registrarAnimalOffline({
       finca_id: fincaId, potrero_id: potreroId || null, fecha, sexo,
-      arete: arete.trim(), nombre: nombre.trim(), raza,
+      arete: arete.trim(), nombre: nombre.trim(), raza, categoria: 'Cría', origen: 'nacimiento',
       peso_kg: pesoKg ? parseFloat(pesoKg) : null,
     });
     setSaving(false);

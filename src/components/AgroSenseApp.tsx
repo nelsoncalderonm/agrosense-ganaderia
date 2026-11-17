@@ -7,7 +7,7 @@ import {
   supabase, getFincas, getPotreros, getAnimales,
   getAlertas, getEventos, getProveedores, getClientes, getGastos, getMovimientos,
   getVacunaciones, getNacimientos, getBajas, getMembresiasFinca,
-  registrarPesaje, getMisMembresias, getIsSuperadmin,
+  getMisMembresias, getIsSuperadmin,
   DbFinca, DbPotrero, DbAnimal, DbAlerta, DbEvento, DbProveedor, DbCliente, DbGasto, DbMovimiento, DbMembresia,
   DbVacunacion, DbNacimiento, DbBaja,
 } from '@/lib/supabase';
@@ -23,6 +23,21 @@ import Drawer from './ui/Drawer';
 import AnimalProfile from './ui/AnimalProfile';
 import FincaPicker from './ui/FincaPicker';
 import LoginScreen from './auth/LoginScreen';
+import EstadoSenal from './ui/EstadoSenal';
+import { useSincronizacion } from '@/hooks/useSincronizacion';
+import { guardarCopia, leerCopia } from '@/lib/offline/copias';
+import { aplicarPendientes } from '@/lib/offline/proyeccion';
+import { sesionGuardada } from '@/lib/offline/sesion';
+import { registrarPesajeOffline } from '@/lib/offline/acciones';
+
+// Copia de una finca guardada en el celular para trabajar sin señal.
+type CopiaFinca = {
+  potreros: DbPotrero[]; animales: DbAnimal[]; alertas: DbAlerta[]; eventos: DbEvento[];
+  proveedores: DbProveedor[]; clientes: DbCliente[]; gastos: DbGasto[]; movimientos: DbMovimiento[];
+  vacunaciones: DbVacunacion[]; nacimientos: DbNacimiento[]; bajas: DbBaja[]; miembros: DbMembresia[];
+};
+type CopiaInicio = { fincas: DbFinca[]; membresias: DbMembresia[]; superadmin: boolean };
+const sinRed = () => typeof navigator !== 'undefined' && navigator.onLine === false;
 
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: 'inicio',   label: 'Inicio',   icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg> },
@@ -99,6 +114,24 @@ function dbFincaToFinca(
   };
 }
 
+async function descargarFinca(finca_id: string): Promise<CopiaFinca> {
+  const [potreros, animales, alertas, eventos, proveedores, clientes, gastos, movimientos, vacunaciones, nacimientos, bajas, miembros] = await Promise.all([
+    getPotreros(finca_id),
+    getAnimales(finca_id),
+    getAlertas(finca_id),
+    getEventos(finca_id),
+    getProveedores(finca_id),
+    getClientes(finca_id),
+    getGastos(finca_id),
+    getMovimientos(finca_id),
+    getVacunaciones(finca_id),
+    getNacimientos(finca_id),
+    getBajas(finca_id),
+    getMembresiasFinca(finca_id),
+  ]);
+  return { potreros, animales, alertas, eventos, proveedores, clientes, gastos, movimientos, vacunaciones, nacimientos, bajas, miembros };
+}
+
 export default function AgroSenseApp() {
   const [tab, setTab]           = useState<Tab>('inicio');
   const [moneda, setMoneda]     = useState<'COP'|'USD'>('COP');
@@ -118,7 +151,7 @@ export default function AgroSenseApp() {
   const [fincas,    setFincas]    = useState<DbFinca[]>([]);
   const [fincaIdx,  setFincaIdx]  = useState(0);
   const [potreros,  setPotreros]  = useState<DbPotrero[]>([]);
-  const [animales,  setAnimales]  = useState<DbAnimal[]>([]);
+  const [animalesServidor, setAnimales] = useState<DbAnimal[]>([]);
   const [alertas,   setAlertas]   = useState<DbAlerta[]>([]);
   const [eventos,   setEventos]   = useState<DbEvento[]>([]);
   const [proveedores, setProveedores] = useState<DbProveedor[]>([]);
@@ -128,50 +161,55 @@ export default function AgroSenseApp() {
   const [vacunaciones, setVacunaciones] = useState<DbVacunacion[]>([]);
   const [nacimientos, setNacimientos] = useState<DbNacimiento[]>([]);
   const [bajas,     setBajas]     = useState<DbBaja[]>([]);
-  const [pendingSync, setPendingSync] = useState(0);
+  const [copiaDel, setCopiaDel] = useState<string | null>(null); // fecha de la copia local en uso
   const [miembrosFinca, setMiembrosFinca] = useState<DbMembresia[]>([]);
 
   const currentFinca = fincas[fincaIdx];
+  const sync = useSincronizacion();
+  // Lo registrado sin señal se ve de inmediato (animales nuevos, pesos, vendidos fuera).
+  const animales = currentFinca ? aplicarPendientes(animalesServidor, sync.pendientes, currentFinca.id) : animalesServidor;
 
-  const loadFincaData = useCallback(async (finca_id: string) => {
-    const [pot, anim, alt, ev, prov, cli, gas, mov, vac, nac, baj, mie] = await Promise.all([
-      getPotreros(finca_id),
-      getAnimales(finca_id),
-      getAlertas(finca_id),
-      getEventos(finca_id),
-      getProveedores(finca_id),
-      getClientes(finca_id),
-      getGastos(finca_id),
-      getMovimientos(finca_id),
-      getVacunaciones(finca_id),
-      getNacimientos(finca_id),
-      getBajas(finca_id),
-      getMembresiasFinca(finca_id),
-    ]);
-    setPotreros(pot);
-    setAnimales(anim);
-    setAlertas(alt);
-    setEventos(ev);
-    setProveedores(prov);
-    setClientes(cli);
-    setGastos(gas);
-    setMovimientos(mov);
-    setVacunaciones(vac);
-    setNacimientos(nac);
-    setBajas(baj);
-    setMiembrosFinca(mie);
-    setPendingSync(gas.filter(g => g.pendiente_sync).length);
+  const aplicarCopia = useCallback((c: CopiaFinca) => {
+    setPotreros(c.potreros);
+    setAnimales(c.animales);
+    setAlertas(c.alertas);
+    setEventos(c.eventos);
+    setProveedores(c.proveedores);
+    setClientes(c.clientes);
+    setGastos(c.gastos);
+    setMovimientos(c.movimientos);
+    setVacunaciones(c.vacunaciones);
+    setNacimientos(c.nacimientos);
+    setBajas(c.bajas);
+    setMiembrosFinca(c.miembros);
   }, []);
 
+  const loadFincaData = useCallback(async (finca_id: string) => {
+    try {
+      if (sinRed()) throw new Error('sin señal');
+      const c = await descargarFinca(finca_id);
+      aplicarCopia(c);
+      setCopiaDel(null);
+      void guardarCopia(`finca:${finca_id}`, c);
+    } catch {
+      const copia = await leerCopia<CopiaFinca>(`finca:${finca_id}`);
+      if (copia) { aplicarCopia(copia.datos); setCopiaDel(copia.guardado_en); }
+    }
+  }, [aplicarCopia]);
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => { setSession(data.session); setAuthChecked(true); });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+    supabase.auth.getSession().then(({ data, error }) => {
+      // Sin señal no se puede renovar la sesión: seguimos con la guardada para ver los datos locales.
+      setSession(data.session ?? (error || sinRed() ? sesionGuardada() : null));
+      setAuthChecked(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s ?? (sinRed() ? sesionGuardada() : null)));
     return () => sub.subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
     if (!session) return;
-    Promise.all([getFincas(), getMisMembresias(), getIsSuperadmin()]).then(([f, m, superadmin]) => {
+    const usar = ({ fincas: f, membresias: m, superadmin }: CopiaInicio) => {
       setMembresias(m);
       setIsSuperadmin(superadmin);
       const allowed = new Set(m.map(x => x.finca_id));
@@ -179,10 +217,34 @@ export default function AgroSenseApp() {
       setFincas(mine);
       if (mine.length) loadFincaData(mine[0].id).finally(() => setLoading(false));
       else setLoading(false);
-    });
+    };
+    const clave = `inicio:${session.user.id}`;
+    (async () => {
+      try {
+        if (sinRed()) throw new Error('sin señal');
+        const [f, m, superadmin] = await Promise.all([getFincas(), getMisMembresias(), getIsSuperadmin()]);
+        void guardarCopia<CopiaInicio>(clave, { fincas: f, membresias: m, superadmin });
+        usar({ fincas: f, membresias: m, superadmin });
+      } catch {
+        const copia = await leerCopia<CopiaInicio>(clave);
+        if (copia) usar(copia.datos);
+        else setLoading(false);
+      }
+    })();
   }, [session, loadFincaData]);
 
-  const handleSignOut = () => { supabase.auth.signOut(); };
+  // Cuando termina de enviar lo pendiente, traemos los datos del servidor (GDP calculada, etc.).
+  const pendientesCount = sync.pendientes.length;
+  const [pendientesAntes, setPendientesAntes] = useState(0);
+  if (pendientesCount !== pendientesAntes) {
+    setPendientesAntes(pendientesCount);
+    if (pendientesCount === 0 && pendientesAntes > 0 && currentFinca && sync.enLinea) void loadFincaData(currentFinca.id);
+  }
+
+  const handleSignOut = () => {
+    if (sync.pendientes.length && !window.confirm(`Hay ${sync.pendientes.length} registros sin enviar. Si cierras sesión se quedan en este celular hasta que vuelvas a entrar. ¿Cerrar sesión?`)) return;
+    supabase.auth.signOut();
+  };
 
   const handleSelectFinca = async (idx: number) => {
     setFincaIdx(idx);
@@ -193,9 +255,11 @@ export default function AgroSenseApp() {
 
   const handleRegistrarPesaje = async (animal: Animal, pesoKg: number) => {
     if (!currentFinca) return;
-    const { error } = await registrarPesaje({ animal_id: animal.dbId, peso_kg: pesoKg });
+    const { error, pendiente } = await registrarPesajeOffline({
+      finca_id: currentFinca.id, animal: { dbId: animal.dbId, nombre: animal.nombre, arete: animal.arete }, peso_kg: pesoKg,
+    });
     if (error) { window.alert(`No se pudo guardar el pesaje: ${error}`); return; }
-    await loadFincaData(currentFinca.id);
+    if (!pendiente) await loadFincaData(currentFinca.id);
   };
 
   // Map DB data to app-layer types
@@ -251,6 +315,12 @@ export default function AgroSenseApp() {
 
       {/* Screen content */}
       <div className="ag-main" style={{ flex:1, display:'flex', flexDirection:'column' }}>
+      <EstadoSenal sync={sync} fincaId={currentFinca?.id} />
+      {copiaDel && !sync.enLinea && (
+        <div style={{ fontFamily:'var(--font-jetbrains)', fontSize:10.5, color:'#6E8A6E', padding:'4px 16px', background:'#F7FAF6', borderBottom:'1px solid #E1E8DD' }}>
+          Mostrando datos guardados el {new Date(copiaDel).toLocaleString('es-CO', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}
+        </div>
+      )}
       <div style={{ flex:1, overflowY:'auto', overflowX:'hidden', paddingBottom:64 }} className="scrollbar-none ag-content-inner">
         {tab === 'inicio' && appFinca && (
           <InicioScreen
@@ -265,7 +335,7 @@ export default function AgroSenseApp() {
             wPeriod={wPeriod}
             setWPeriod={setWPeriod}
             alertas={alertas}
-            pendingSync={pendingSync}
+            pendingSync={sync.pendientes.length}
           />
         )}
         {tab === 'animales' && (
