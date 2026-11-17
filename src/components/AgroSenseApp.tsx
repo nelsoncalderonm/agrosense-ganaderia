@@ -20,6 +20,7 @@ import AdminScreen from './screens/AdminScreen';
 import ReportesScreen from './screens/ReportesScreen';
 import AjustesScreen from './screens/AjustesScreen';
 import Drawer from './ui/Drawer';
+import SoporteChat from './soporte/SoporteChat';
 import AnimalProfile from './ui/AnimalProfile';
 import FincaPicker from './ui/FincaPicker';
 import LoginScreen from './auth/LoginScreen';
@@ -350,6 +351,9 @@ export default function AgroSenseApp() {
           );
         })}
       </div>
+
+      {/* Soporte con IA */}
+      <SoporteChat origen="app" />
 
       {/* Overlays */}
       {drawerOpen && (
