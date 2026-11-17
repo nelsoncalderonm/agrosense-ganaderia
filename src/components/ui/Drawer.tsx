@@ -16,13 +16,14 @@ interface Props {
   onOpenFincaPicker?: () => void;
 }
 
-const MENU_ITEMS = [
+const MENU_ITEMS: { key: string; label: string; icon: string | null; special?: string; locked?: boolean }[] = [
   { key: 'inicio',    label: 'Inicio',          icon: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z' },
   { key: 'animales',  label: 'Animales',         icon: null, special: 'cow' },
   { key: 'rfid',      label: 'Lector RFID',      icon: 'M5 12.5a9 9 0 0114 0M8 15a5 5 0 018 0' },
   { key: 'agenda',    label: 'Calendario',       icon: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01' },
   { key: 'finanzas',  label: 'Finanzas',         icon: 'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6' },
-  { key: 'potreros',  label: 'Potreros',         icon: 'M3 7h18M3 12h18M3 17h18', locked: true },
+  { key: 'potreros',  label: 'Potreros y suelos', icon: 'M3 7h18M3 12h18M3 17h18' },
+  { key: 'clima',     label: 'Clima y lluvia',   icon: 'M20 16.6A5 5 0 0018 7h-1.3A8 8 0 104 15.3M8 19v2M12 21v2M16 19v2' },
   { key: 'sinigan',   label: 'Sinigán',          icon: 'M9 12l2 2 4-4M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6z', soon: true },
   { key: 'reportes',  label: 'Reportes',         icon: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z' },
   { key: 'ajustes',   label: 'Ajustes',          icon: 'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z' },

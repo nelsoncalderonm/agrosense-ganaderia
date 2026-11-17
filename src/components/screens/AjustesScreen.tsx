@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { RoleKey } from '@/data/agrosense';
+import UbicacionFinca from '../ui/UbicacionFinca';
 import { DbFinca, DbMembresia, actualizarFinca, actualizarVentaFinca, actualizarMembresia, eliminarMembresia, cambiarPassword, getConectadosTelegram } from '@/lib/supabase';
 import { TelegramCard, EnlaceTelegramMiembro } from './TelegramCard';
 
@@ -274,6 +275,9 @@ export default function AjustesScreen({ onOpenDrawer, finca, role, miembros, miM
 
         {isOwner && finca && (
           <FincaForm finca={finca} onGuardado={onFincaActualizada} />
+        )}
+        {isOwner && finca && (
+          <UbicacionFinca key={finca.id} finca={finca} puedeEditar onGuardado={onFincaActualizada} />
         )}
 
         {isOwner && (

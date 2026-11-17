@@ -28,6 +28,7 @@ interface Props {
   kgTotales?: number;            // kilos de todo el ganado activo
   onPonerPrecio?: () => void;
   venta?: React.ReactNode;       // Listos para vender / No están engordando
+  climaCard?: React.ReactNode;
 }
 
 function WeightChart({ period }: { period: '1M' | '3M' | '6M' }) {
@@ -62,7 +63,7 @@ function WeightChart({ period }: { period: '1M' | '3M' | '6M' }) {
   );
 }
 
-export default function InicioScreen({ finca, role, moneda, setMoneda, onOpenDrawer, onOpenFincaPicker, onGoAnimales, onGoPotreros, wPeriod, setWPeriod, alertas, pendingSync, precioKg, kgTotales = 0, onPonerPrecio, venta }: Props) {
+export default function InicioScreen({ finca, role, moneda, setMoneda, onOpenDrawer, onOpenFincaPicker, onGoAnimales, onGoPotreros, wPeriod, setWPeriod, alertas, pendingSync, precioKg, kgTotales = 0, onPonerPrecio, venta, climaCard }: Props) {
   const canFinanzas = role === 'owner' || role === 'contable';
   const fecha = new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'long' });
 
@@ -130,6 +131,8 @@ export default function InicioScreen({ finca, role, moneda, setMoneda, onOpenDra
           </div>
         )}
       </div>
+
+      {climaCard}
 
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 9, marginTop: 20 }}>
