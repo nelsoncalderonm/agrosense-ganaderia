@@ -16,7 +16,7 @@ interface Props {
   onOpenFincaPicker?: () => void;
 }
 
-const MENU_ITEMS: { key: string; label: string; icon: string | null; special?: string; locked?: boolean }[] = [
+const MENU_ITEMS: { key: string; label: string; icon: string | null; special?: string; locked?: boolean; soon?: boolean }[] = [
   { key: 'inicio',    label: 'Inicio',          icon: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z' },
   { key: 'animales',  label: 'Animales',         icon: null, special: 'cow' },
   { key: 'rfid',      label: 'Lector RFID',      icon: 'M5 12.5a9 9 0 0114 0M8 15a5 5 0 018 0' },
@@ -97,7 +97,7 @@ export default function Drawer({ open, finca, displayName, role, onClose, onNavi
                 )}
               </div>
               <span style={{ fontSize: 19, fontWeight: active ? 700 : 600 }}>{item.label}</span>
-              {'soon' in item && item.soon && (
+              {item.soon && (
                 <span style={{ marginLeft: 'auto', background: '#FEF3C7', color: '#B45309', fontSize: 13, fontWeight: 700, borderRadius: 3, padding: '2px 6px' }}>PRONTO</span>
               )}
               {item.locked && (
