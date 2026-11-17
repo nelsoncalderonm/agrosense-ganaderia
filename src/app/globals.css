@@ -138,3 +138,8 @@ input::placeholder, textarea::placeholder { color: #4A5E4A; opacity: 1; font-wei
     box-shadow: 0 20px 60px rgba(0,0,0,.25);
   }
 }
+
+/* Soporte con IA: en escritorio no hay barra inferior */
+@media (min-width: 1024px) {
+  .ag-soporte-burbuja { bottom: 24px !important; }
+}
