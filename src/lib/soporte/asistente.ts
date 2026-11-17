@@ -30,7 +30,7 @@ function getAnthropic(): Anthropic {
           baseURL: 'https://openrouter.ai/api',
           apiKey: null,
           authToken: process.env.OPENROUTER_API_KEY,
-          defaultHeaders: { 'X-Title': 'AgroSense Soporte' },
+          defaultHeaders: { 'X-Title': 'Ganado al Día Soporte' },
         })
       : new Anthropic(); // lee ANTHROPIC_API_KEY
   }
@@ -41,7 +41,7 @@ const HERRAMIENTAS: Anthropic.Beta.BetaTool[] = [
   {
     name: 'registrar_lead',
     description:
-      'Guarda los datos de contacto de una persona interesada en AgroSense para que un asesor la contacte. ' +
+      'Guarda los datos de contacto de una persona interesada en Ganado al Día para que un asesor la contacte. ' +
       'Úsela cuando la persona quiera empezar, pida cotización, pregunte por el kit RFID, el plan Empresarial o el programa de embajadores, ' +
       'y ya haya dado al menos su nombre y su WhatsApp (o correo).',
     strict: true,
@@ -68,7 +68,7 @@ const HERRAMIENTAS: Anthropic.Beta.BetaTool[] = [
   {
     name: 'escalar_a_humano',
     description:
-      'Pasa la conversación a un asesor humano de AgroSense, que contactará a la persona por WhatsApp. ' +
+      'Pasa la conversación a un asesor humano de Ganado al Día, que contactará a la persona por WhatsApp. ' +
       'Úsela si la persona lo pide, si hay un problema de pago, factura o reembolso, si la app falla y los pasos básicos no lo resuelven, ' +
       'si pregunta algo que la base de conocimiento no cubre, o si está molesta.',
     strict: true,
@@ -91,7 +91,7 @@ function whatsappUrl(texto: string): string | null {
   return `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`;
 }
 
-// Aviso al equipo por Telegram (reutiliza el bot de AgroSense si está configurado).
+// Aviso al equipo por Telegram (reutiliza el bot de Ganado al Día si está configurado).
 async function avisarEquipo(mensaje: string): Promise<void> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.SOPORTE_TELEGRAM_CHAT_ID;
@@ -177,7 +177,7 @@ async function ejecutarHerramienta(
       if (error) console.error('[soporte] no se pudo guardar el lead', error.message);
     }
     await avisarEquipo(
-      `🐂 Nuevo interesado en AgroSense (${ctx.origen})\n` +
+      `🐂 Nuevo interesado en Ganado al Día (${ctx.origen})\n` +
         `Nombre: ${lead.nombre}\nWhatsApp: ${lead.whatsapp ?? '-'}\nCorreo: ${lead.email ?? '-'}\n` +
         `País: ${lead.pais ?? '-'} · Animales: ${lead.animales ?? '-'} · Plan: ${lead.plan_interes ?? '-'}` +
         `${lead.interes_kit_rfid ? ' · Quiere kit RFID' : ''}\nNotas: ${lead.notas ?? '-'}`,
@@ -194,7 +194,7 @@ async function ejecutarHerramienta(
         .eq('id', ctx.conversacionId);
     }
     await avisarEquipo(
-      `${datos.urgente ? '🚨 URGENTE · ' : ''}Soporte AgroSense pide un asesor (${ctx.origen})\n` +
+      `${datos.urgente ? '🚨 URGENTE · ' : ''}Soporte Ganado al Día pide un asesor (${ctx.origen})\n` +
         `Motivo: ${motivo}\nContacto: ${datos.contacto ?? 'no lo dio'}\n` +
         `Último mensaje: "${ctx.ultimaPregunta.slice(0, 300)}"` +
         (ctx.conversacionId ? `\nConversación: ${ctx.conversacionId}` : ''),
@@ -225,7 +225,7 @@ export async function responder(opts: {
     role: 'system',
     content:
       origen === 'app'
-        ? 'Quien escribe es un cliente con sesión iniciada en la app de AgroSense.'
+        ? 'Quien escribe es un cliente con sesión iniciada en la app de Ganado al Día.'
         : `Quien escribe llega desde ${origen === 'whatsapp' ? 'WhatsApp' : 'la página web'} y puede ser un prospecto o un cliente.`,
   } as unknown as Anthropic.Beta.BetaMessageParam);
 
@@ -250,7 +250,7 @@ export async function responder(opts: {
     tokensSalida += res.usage.output_tokens ?? 0;
 
     if (res.stop_reason === 'refusal') {
-      respuesta = 'Disculpe, no puedo ayudarle con eso por aquí. Si es sobre AgroSense, un asesor le puede atender por WhatsApp.';
+      respuesta = 'Disculpe, no puedo ayudarle con eso por aquí. Si es sobre Ganado al Día, un asesor le puede atender por WhatsApp.';
       break;
     }
 
@@ -277,7 +277,7 @@ export async function responder(opts: {
 
   if (!respuesta) {
     respuesta = escalada || leadRegistrado
-      ? 'Listo. Un asesor de AgroSense le escribirá pronto por WhatsApp.'
+      ? 'Listo. Un asesor de Ganado al Día le escribirá pronto por WhatsApp.'
       : 'Disculpe, no entendí bien. ¿Me lo puede contar con otras palabras?';
   }
 
@@ -308,6 +308,6 @@ export async function responder(opts: {
     conversacionId,
     escalada,
     leadRegistrado,
-    whatsappUrl: whatsappUrl('Hola, vengo del chat de AgroSense y necesito ayuda.'),
+    whatsappUrl: whatsappUrl('Hola, vengo del chat de Ganado al Día y necesito ayuda.'),
   };
 }

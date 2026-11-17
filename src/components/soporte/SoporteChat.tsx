@@ -16,7 +16,7 @@ const SUGERENCIAS_VISITANTE = [
   '¿Necesito el lector RFID?',
 ];
 
-const SALUDO = 'Hola, soy el asistente de AgroSense. ¿En qué le puedo ayudar?';
+const SALUDO = 'Hola, soy el asistente de Ganado al Día. ¿En qué le puedo ayudar?';
 const CLAVE_STORAGE = 'agrosense-soporte';
 
 type Props = {
@@ -125,7 +125,7 @@ export default function SoporteChat({ origen, embebido = false }: Props) {
     <div className="animate-up" style={{ ...panel, background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid #E1E8DD' }}>
       <div style={{ background: '#15A34A', color: '#fff', padding: origen === 'landing' ? '12px 52px 12px 14px' : '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 800, fontSize: 15 }}>Ayuda AgroSense</div>
+          <div style={{ fontWeight: 800, fontSize: 15 }}>Ayuda Ganado al Día</div>
           <div style={{ fontSize: 11.5, opacity: 0.9 }}>Asistente con IA · le pasa con una persona si lo necesita</div>
         </div>
         {mensajes.length > 0 && (

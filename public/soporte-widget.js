@@ -1,5 +1,5 @@
 /*
- * Widget de soporte AgroSense para incrustar en cualquier página (landing, blog).
+ * Widget de soporte Ganado al Día para incrustar en cualquier página (landing, blog).
  * Uso: <script src="https://SU-DOMINIO-DE-LA-APP/soporte-widget.js" defer></script>
  * Muestra un botón "¿Preguntas?" que abre el chat de /soporte en un panel.
  */
@@ -14,7 +14,7 @@
 
   var btn = document.createElement('button');
   btn.type = 'button';
-  btn.setAttribute('aria-label', 'Abrir chat de ayuda de AgroSense');
+  btn.setAttribute('aria-label', 'Abrir chat de ayuda de Ganado al Día');
   btn.innerHTML =
     '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><span></span>';
   btn.querySelector('span').textContent = texto;
@@ -40,7 +40,7 @@
     if (!iframe) {
       iframe = document.createElement('iframe');
       iframe.src = base + '/soporte?origen=landing';
-      iframe.title = 'Chat de ayuda AgroSense';
+      iframe.title = 'Chat de ayuda Ganado al Día';
       iframe.style.cssText = 'width:100%;height:100%;border:0';
       panel.appendChild(iframe);
       panel.appendChild(cerrar);

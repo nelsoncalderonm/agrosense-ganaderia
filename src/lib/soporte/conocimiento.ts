@@ -1,4 +1,4 @@
-// Base de conocimiento del asistente de soporte de AgroSense.
+// Base de conocimiento del asistente de soporte de Ganado al Día.
 //
 // Este texto es lo único que el asistente "sabe" del producto. Para cambiar
 // una respuesta (precio, duración de la prueba, una función nueva), edite
@@ -9,10 +9,12 @@
 // costo por mensaje se mantenga bajo.
 
 export const CONOCIMIENTO = `
-# AgroSense Ganadería
+# Ganado al Día
+
+Nombre: Ganado al Día (antes se llamaba AgroSense; si alguien menciona AgroSense, es el mismo producto).
 
 ## Qué es
-AgroSense es un software para ganaderos de ceba (engorde) en Latinoamérica, respaldado por Frigorodeo y hecho en Colombia. Se usa desde cualquier celular Android o iPhone con navegador, y también desde computador. La promesa: "Sepa cuánto engorda y cuánto le deja cada novillo." Está pensado para usarse en el corral: botones grandes y pocos pasos.
+Ganado al Día es un software para ganaderos de ceba (engorde) en Latinoamérica, respaldado por Frigorodeo y hecho en Colombia. Se usa desde cualquier celular Android o iPhone con navegador, y también desde computador. La promesa: "Sepa cuánto engorda y cuánto le deja cada novillo." Está pensado para usarse en el corral: botones grandes y pocos pasos.
 
 ## Funciones disponibles hoy
 - Inicio: resumen de la finca, alertas y próximos eventos.
@@ -60,7 +62,7 @@ No hacemos visitas a las fincas: todo el acompañamiento es por videollamada o W
 Muchas fincas ya tienen WiFi o internet satelital (por ejemplo Starlink), que es lo que recomendamos. El modo sin señal está en preparación.
 
 ## Embajadores
-Programa para ganaderos que usan AgroSense y graban videos en su finca mostrando cómo trabajan con la app. Ganan el 30% de lo que pague cada cliente que traigan con su enlace, durante el primer año. Las comisiones se registran y se pagan automáticamente por Hotmart. Reciben un kit demo (lector, chapetas y una guía de qué mostrar). Para inscribirse se escala a un asesor.
+Programa para ganaderos que usan Ganado al Día y graban videos en su finca mostrando cómo trabajan con la app. Ganan el 30% de lo que pague cada cliente que traigan con su enlace, durante el primer año. Las comisiones se registran y se pagan automáticamente por Hotmart. Reciben un kit demo (lector, chapetas y una guía de qué mostrar). Para inscribirse se escala a un asesor.
 
 ## Preguntas frecuentes
 - ¿Qué celular necesito? Cualquier Android o iPhone con navegador.
@@ -76,14 +78,14 @@ Programa para ganaderos que usan AgroSense y graban videos en su finca mostrando
 - "No veo mi otra finca": usar el selector de finca arriba (en computador) o en el menú. Si no aparece, su usuario no tiene acceso a esa finca: escalar.
 `;
 
-export const SYSTEM_PROMPT = `Usted es el asistente de soporte de AgroSense Ganadería, el software para ganaderos de ceba respaldado por Frigorodeo. Atiende a dos tipos de personas: clientes que ya usan la app y personas interesadas (prospectos) que llegan desde la página web o WhatsApp.
+export const SYSTEM_PROMPT = `Usted es el asistente de soporte de Ganado al Día, el software para ganaderos de ceba respaldado por Frigorodeo. Atiende a dos tipos de personas: clientes que ya usan la app y personas interesadas (prospectos) que llegan desde la página web o WhatsApp.
 
 Cómo responder:
 - Escriba en español latinoamericano sencillo, tratando de "usted", con calidez y sin tecnicismos. Si la persona escribe en portugués o inglés, responda en ese idioma.
 - Respuestas cortas: 2 a 5 frases, o una lista corta de pasos. Piense que la persona lee desde el celular en la finca.
 - Use solo la información de la base de conocimiento. Si algo no está ahí (un precio que no aparece, una fecha, una función), dígalo con honestidad y ofrezca pasar el caso a un asesor. Nunca invente precios, fechas, descuentos ni funciones.
 - No pida contraseñas ni datos de tarjetas. Si alguien los comparte, dígale que no los envíe por aquí.
-- No responda temas ajenos a AgroSense y la ganadería. Puede dar consejos generales de manejo de ceba si se relacionan con el uso de la app, aclarando que no reemplaza al veterinario.
+- No responda temas ajenos a Ganado al Día y la ganadería. Puede dar consejos generales de manejo de ceba si se relacionan con el uso de la app, aclarando que no reemplaza al veterinario.
 
 Prospectos:
 - Entienda su caso con naturalidad (cuántos animales, cuántas fincas, país) para recomendar el plan que le sirve, e invítelo a la prueba gratis de 30 días.

@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import SoporteChat from '@/components/soporte/SoporteChat';
 
 export const metadata: Metadata = {
-  title: 'Ayuda · AgroSense Ganadería',
-  description: 'Resuelva sus dudas sobre AgroSense con nuestro asistente, o hable con un asesor.',
+  title: 'Ayuda · Ganado al Día',
+  description: 'Resuelva sus dudas sobre Ganado al Día con nuestro asistente, o hable con un asesor.',
 };
 
 // Página pública de ayuda. Sirve como enlace directo (bio de WhatsApp, Instagram)
