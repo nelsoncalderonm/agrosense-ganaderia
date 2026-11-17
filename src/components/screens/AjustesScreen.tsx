@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { RoleKey } from '@/data/agrosense';
-import { DbFinca, DbMembresia, actualizarFinca, actualizarMembresia, eliminarMembresia, cambiarPassword, getConectadosTelegram } from '@/lib/supabase';
+import { DbFinca, DbMembresia, actualizarFinca, actualizarVentaFinca, actualizarMembresia, eliminarMembresia, cambiarPassword, getConectadosTelegram } from '@/lib/supabase';
 import { TelegramCard, EnlaceTelegramMiembro } from './TelegramCard';
 
 interface Props {
@@ -35,6 +35,54 @@ const lbl: React.CSSProperties = {
 const card: React.CSSProperties = {
   background: '#fff', border: '1px solid #B9C6B4', borderRadius: 6, padding: 16,
 };
+
+// Meta de peso para sacar al matadero y precio del kilo en pie.
+function VentaFincaForm({ finca, onGuardado }: { finca: DbFinca; onGuardado: () => void }) {
+  const [meta, setMeta] = useState(String(finca.meta_peso_kg ?? 480));
+  const [precio, setPrecio] = useState(finca.precio_kg != null ? String(finca.precio_kg) : '');
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [ok, setOk] = useState(false);
+  const grande: React.CSSProperties = { ...inp, height: 50, fontSize: 20, fontWeight: 800 };
+
+  const handleGuardar = async () => {
+    const m = parseFloat(meta);
+    const p = precio ? parseFloat(precio.replace(/\./g, '').replace(',', '.')) : null;
+    if (!m || m < 100 || m > 1500) { setErr('La meta debe estar entre 100 y 1.500 kg'); return; }
+    if (p != null && (isNaN(p) || p <= 0)) { setErr('Precio del kilo inválido'); return; }
+    setSaving(true); setErr(null); setOk(false);
+    const { error } = await actualizarVentaFinca(finca.id, { meta_peso_kg: m, precio_kg: p });
+    setSaving(false);
+    if (error) { setErr(navigator.onLine ? error : 'Sin señal: guárdelo cuando tenga internet'); return; }
+    setOk(true);
+    onGuardado();
+  };
+
+  return (
+    <div id="ajustes-venta" style={{ ...card, borderLeft: '4px solid #15A34A' }}>
+      <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>Venta al matadero</div>
+      <div style={{ fontSize: 13, color: '#6E8A6E', marginBottom: 14 }}>Con esto la app le dice cuáles animales ya están listos y cuánto vale su ganado hoy.</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div><label style={{ ...lbl, fontSize: 11.5 }}>META DE PESO PARA VENDER (KG)</label>
+          <input style={grande} type="number" inputMode="numeric" min={100} max={1500} value={meta} onChange={e => setMeta(e.target.value)} />
+        </div>
+        <div><label style={{ ...lbl, fontSize: 11.5 }}>PRECIO DEL KILO EN PIE HOY ($)</label>
+          <input style={grande} type="number" inputMode="numeric" min={0} value={precio} onChange={e => setPrecio(e.target.value)} placeholder="Ej: 9000" />
+          {finca.precio_kg_actualizado && (
+            <div style={{ fontSize: 11.5, color: '#9DB39D', marginTop: 4 }}>
+              Actualizado el {new Date(finca.precio_kg_actualizado).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
+            </div>
+          )}
+        </div>
+        {err && <div style={{ fontSize: 12.5, color: '#DC2626', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{err}</div>}
+        {ok && <div style={{ fontSize: 12.5, color: '#15A34A', background: '#DCFCE7', padding: '6px 10px', borderRadius: 4 }}>Guardado</div>}
+        <button onClick={handleGuardar} disabled={saving} style={{ height: 50, border: 'none', borderRadius: 4, background: saving ? '#6E8A6E' : '#15A34A', color: '#fff', fontWeight: 800, fontSize: 15, cursor: saving ? 'default' : 'pointer' }}>
+          {saving ? 'Guardando…' : 'Guardar'}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function FincaForm({ finca, onGuardado }: { finca: DbFinca; onGuardado: () => void }) {
   const [nombre, setNombre] = useState(finca.nombre);
@@ -214,6 +262,10 @@ export default function AjustesScreen({ onOpenDrawer, finca, role, miembros, miM
       </div>
 
       <div className="ag-list-grid" style={{ padding: '16px 16px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        {isOwner && finca && (
+          <VentaFincaForm key={finca.id} finca={finca} onGuardado={onFincaActualizada} />
+        )}
+
         <CuentaForm displayName={displayName} miMembresiaId={miMembresiaId} onNombreActualizado={onMiembrosActualizados} />
 
         {finca && (role === 'owner' || role === 'admin') && (

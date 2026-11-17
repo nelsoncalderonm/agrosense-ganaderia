@@ -82,12 +82,13 @@ export type TipoSanitario = typeof TIPOS_SANITARIOS[number]['key'];
 export async function registrarEventoSanitarioOffline(p: {
   finca_id: string; animal?: AnimalRef | null;
   tipo: TipoSanitario; producto: string | null; dosis: string | null; fecha: string; notas: string | null;
+  dias_retiro?: number | null;
 }): Promise<Respuesta> {
   const etiqueta = TIPOS_SANITARIOS.find(t => t.key === p.tipo)?.label ?? p.tipo;
   return r(await registrar({
     finca_id: p.finca_id, tipo: 'evento_sanitario',
-    payload: { id: nuevoId(), animal_id: p.animal?.dbId ?? null, tipo: p.tipo, producto: p.producto, dosis: p.dosis, fecha: p.fecha, notas: p.notas },
-    descripcion: `${etiqueta}${p.producto ? ` (${p.producto})` : ''}${p.animal ? ` · ${nombreDe(p.animal)}` : ''}`,
+    payload: { id: nuevoId(), animal_id: p.animal?.dbId ?? null, tipo: p.tipo, producto: p.producto, dosis: p.dosis, fecha: p.fecha, notas: p.notas, dias_retiro: p.dias_retiro ?? null },
+    descripcion: `${etiqueta}${p.producto ? ` (${p.producto})` : ''}${p.animal ? ` · ${nombreDe(p.animal)}` : ''}${p.dias_retiro ? ` · retiro ${p.dias_retiro} días` : ''}`,
   }));
 }
 

@@ -7,8 +7,8 @@ import {
   supabase, getFincas, getPotreros, getAnimales,
   getAlertas, getEventos, getProveedores, getClientes, getGastos, getMovimientos,
   getVacunaciones, getNacimientos, getBajas, getMembresiasFinca,
-  getMisMembresias, getIsSuperadmin, getMiOnboardingPendiente, DbOrgOnboarding,
-  DbFinca, DbPotrero, DbAnimal, DbAlerta, DbEvento, DbProveedor, DbCliente, DbGasto, DbMovimiento, DbMembresia,
+  getMisMembresias, getIsSuperadmin, getMiOnboardingPendiente, DbOrgOnboarding, getRetiros,
+  DbRetiro, DbFinca, DbPotrero, DbAnimal, DbAlerta, DbEvento, DbProveedor, DbCliente, DbGasto, DbMovimiento, DbMembresia,
   DbVacunacion, DbNacimiento, DbBaja,
 } from '@/lib/supabase';
 import InicioScreen from './screens/InicioScreen';
@@ -32,12 +32,15 @@ import { guardarCopia, leerCopia } from '@/lib/offline/copias';
 import { aplicarPendientes } from '@/lib/offline/proyeccion';
 import { sesionGuardada } from '@/lib/offline/sesion';
 import { registrarPesajeOffline } from '@/lib/offline/acciones';
+import { resumenVenta, retirosPendientes, retirosPorAnimal } from '@/lib/venta';
+import { ListosParaVender, NoEngordan } from './ui/VentaGanado';
 
 // Copia de una finca guardada en el celular para trabajar sin señal.
 type CopiaFinca = {
   potreros: DbPotrero[]; animales: DbAnimal[]; alertas: DbAlerta[]; eventos: DbEvento[];
   proveedores: DbProveedor[]; clientes: DbCliente[]; gastos: DbGasto[]; movimientos: DbMovimiento[];
   vacunaciones: DbVacunacion[]; nacimientos: DbNacimiento[]; bajas: DbBaja[]; miembros: DbMembresia[];
+  retiros?: DbRetiro[];   // las copias guardadas antes de esta versión no lo traen
 };
 type CopiaInicio = { fincas: DbFinca[]; membresias: DbMembresia[]; superadmin: boolean };
 const sinRed = () => typeof navigator !== 'undefined' && navigator.onLine === false;
@@ -119,7 +122,7 @@ function dbFincaToFinca(
 }
 
 async function descargarFinca(finca_id: string): Promise<CopiaFinca> {
-  const [potreros, animales, alertas, eventos, proveedores, clientes, gastos, movimientos, vacunaciones, nacimientos, bajas, miembros] = await Promise.all([
+  const [potreros, animales, alertas, eventos, proveedores, clientes, gastos, movimientos, vacunaciones, nacimientos, bajas, miembros, retiros] = await Promise.all([
     getPotreros(finca_id),
     getAnimales(finca_id),
     getAlertas(finca_id),
@@ -132,8 +135,9 @@ async function descargarFinca(finca_id: string): Promise<CopiaFinca> {
     getNacimientos(finca_id),
     getBajas(finca_id),
     getMembresiasFinca(finca_id),
+    getRetiros(finca_id),
   ]);
-  return { potreros, animales, alertas, eventos, proveedores, clientes, gastos, movimientos, vacunaciones, nacimientos, bajas, miembros };
+  return { potreros, animales, alertas, eventos, proveedores, clientes, gastos, movimientos, vacunaciones, nacimientos, bajas, miembros, retiros };
 }
 
 export default function AgroSenseApp() {
@@ -169,6 +173,7 @@ export default function AgroSenseApp() {
   const [bajas,     setBajas]     = useState<DbBaja[]>([]);
   const [copiaDel, setCopiaDel] = useState<string | null>(null); // fecha de la copia local en uso
   const [miembrosFinca, setMiembrosFinca] = useState<DbMembresia[]>([]);
+  const [retirosServidor, setRetiros] = useState<DbRetiro[]>([]);
 
   const currentFinca = fincas[fincaIdx];
   const sync = useSincronizacion();
@@ -188,6 +193,7 @@ export default function AgroSenseApp() {
     setNacimientos(c.nacimientos);
     setBajas(c.bajas);
     setMiembrosFinca(c.miembros);
+    setRetiros(c.retiros ?? []);
   }, []);
 
   const loadFincaData = useCallback(async (finca_id: string) => {
@@ -250,6 +256,22 @@ export default function AgroSenseApp() {
     if (pendientesCount === 0 && pendientesAntes > 0 && currentFinca && sync.enLinea) void loadFincaData(currentFinca.id);
   }
 
+  // Vender a tiempo: retiros (incluye tratamientos hechos sin señal), listos para vender y valor del ganado.
+  const retiros = currentFinca
+    ? retirosPorAnimal(animales, [...retirosServidor, ...retirosPendientes(sync.pendientes, currentFinca.id)])
+    : new Map();
+  const venta = resumenVenta(animales, currentFinca?.meta_peso_kg, retiros);
+
+  // Cambios de la finca (meta de peso, precio): se vuelve a leer la finca además de sus datos.
+  const recargarFinca = async () => {
+    if (!currentFinca) return;
+    try {
+      const f = await getFincas();
+      setFincas(prev => prev.map(x => f.find(y => y.id === x.id) ?? x));
+    } catch { /* sin señal: se queda la que hay */ }
+    await loadFincaData(currentFinca.id);
+  };
+
   const handleSignOut = () => {
     if (sync.pendientes.length && !window.confirm(`Hay ${sync.pendientes.length} registros sin enviar. Si cierras sesión se quedan en este celular hasta que vuelvas a entrar. ¿Cerrar sesión?`)) return;
     supabase.auth.signOut();
@@ -286,6 +308,7 @@ export default function AgroSenseApp() {
   const myMembresia = membresias.find(m => m.finca_id === currentFinca?.id);
   const currentRole: RoleKey = myMembresia?.rol ?? (isSuperadmin ? 'owner' : 'vaquero');
   const displayName = myMembresia?.nombre ?? session?.user.email ?? '';
+  const abrirAnimal = (dbId: string) => { const a = appAnimals.find(x => x.dbId === dbId); if (a) setSelectedAnimal(a); };
 
   const Spinner = (msg: string) => (
     <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#EEF2EC' }}>
@@ -377,6 +400,23 @@ export default function AgroSenseApp() {
             setWPeriod={setWPeriod}
             alertas={alertas}
             pendingSync={sync.pendientes.length}
+            precioKg={currentFinca?.precio_kg ?? null}
+            kgTotales={venta.kgTotales}
+            onPonerPrecio={currentRole === 'owner' ? () => setTab('ajustes') : undefined}
+            venta={
+              <>
+                <ListosParaVender
+                  r={venta}
+                  retiros={retiros}
+                  fincaNombre={currentFinca?.nombre ?? ''}
+                  ubicacion={currentFinca?.ubicacion ?? null}
+                  puedeOfrecer={currentRole === 'owner' || currentRole === 'admin'}
+                  onCambiarMeta={currentRole === 'owner' ? () => setTab('ajustes') : undefined}
+                  onAbrirAnimal={abrirAnimal}
+                />
+                <NoEngordan animales={venta.noEngordan} onAbrirAnimal={abrirAnimal} />
+              </>
+            }
           />
         )}
         {tab === 'animales' && (
@@ -451,7 +491,7 @@ export default function AgroSenseApp() {
             miembros={miembrosFinca}
             miMembresiaId={myMembresia?.id}
             displayName={displayName}
-            onFincaActualizada={() => currentFinca && loadFincaData(currentFinca.id)}
+            onFincaActualizada={() => void recargarFinca()}
             onMiembrosActualizados={() => currentFinca && loadFincaData(currentFinca.id)}
           />
         )}
@@ -500,6 +540,8 @@ export default function AgroSenseApp() {
             onBajaRegistrada={() => currentFinca && loadFincaData(currentFinca.id)}
             onVentaRegistrada={() => currentFinca && loadFincaData(currentFinca.id)}
             onTrasladoRegistrado={() => currentFinca && loadFincaData(currentFinca.id)}
+            onSanidadRegistrada={() => currentFinca && loadFincaData(currentFinca.id)}
+            retiro={retiros.get(selectedAnimal.dbId) ?? null}
           />
         </div>
       )}

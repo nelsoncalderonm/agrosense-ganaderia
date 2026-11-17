@@ -24,6 +24,10 @@ interface Props {
   setWPeriod: (p: '1M' | '3M' | '6M') => void;
   alertas: DbAlerta[];
   pendingSync: number;
+  precioKg?: number | null;      // precio del kilo en pie que puso el ganadero
+  kgTotales?: number;            // kilos de todo el ganado activo
+  onPonerPrecio?: () => void;
+  venta?: React.ReactNode;       // Listos para vender / No están engordando
 }
 
 function WeightChart({ period }: { period: '1M' | '3M' | '6M' }) {
@@ -58,16 +62,20 @@ function WeightChart({ period }: { period: '1M' | '3M' | '6M' }) {
   );
 }
 
-export default function InicioScreen({ finca, role, moneda, setMoneda, onOpenDrawer, onOpenFincaPicker, onGoAnimales, onGoPotreros, wPeriod, setWPeriod, alertas, pendingSync }: Props) {
+export default function InicioScreen({ finca, role, moneda, setMoneda, onOpenDrawer, onOpenFincaPicker, onGoAnimales, onGoPotreros, wPeriod, setWPeriod, alertas, pendingSync, precioKg, kgTotales = 0, onPonerPrecio, venta }: Props) {
   const canFinanzas = role === 'owner' || role === 'contable';
   const fecha = new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'long' });
 
   const usdRate = 4100;
-  const valorCop = finca.valorCop;
+  // ¿Cuánto vale mi ganado hoy? kilos × precio del kilo. Sin precio se usa el valor que tenga la finca.
+  const conPrecio = !!precioKg && kgTotales > 0;
+  const valorCop = conPrecio ? Math.round(kgTotales * (precioKg as number)) : finca.valorCop;
   const valorUsd = Math.round(valorCop / usdRate);
-  const gananciaMesCop = finca.gananciaMesKg * 8400;
+  const gananciaMesCop = finca.gananciaMesKg * (precioKg || 8400);
   const valorBig = moneda === 'COP' ? money(valorCop) : '$' + valorUsd.toLocaleString('en-US');
-  const valorSub = moneda === 'COP' ? `${finca.animales} animales · $${Math.round(valorCop / finca.animales / 1000)}k promedio` : `${finca.animales} animales · USD ${Math.round(valorUsd / finca.animales).toLocaleString('en-US')} avg`;
+  const valorSub = conPrecio
+    ? `${kgTotales.toLocaleString('es-CO')} kg × ${money(precioKg as number)} el kilo`
+    : moneda === 'COP' ? `${finca.animales} animales · $${Math.round(valorCop / finca.animales / 1000)}k promedio` : `${finca.animales} animales · USD ${Math.round(valorUsd / finca.animales).toLocaleString('en-US')} avg`;
   const gananciaMesTxt = moneda === 'COP' ? money(gananciaMesCop) : '$' + Math.round(gananciaMesCop / usdRate).toLocaleString('en-US');
 
   const comp = finca.comp;
@@ -137,6 +145,8 @@ export default function InicioScreen({ finca, role, moneda, setMoneda, onOpenDra
         ))}
       </div>
 
+      {venta}
+
       {/* Desktop: hero+composición+chart on the left, activity feeds on the right */}
       <div className="ag-dash-grid">
       <div className="ag-dash-left">
@@ -144,7 +154,7 @@ export default function InicioScreen({ finca, role, moneda, setMoneda, onOpenDra
       {canFinanzas ? (
         <div style={{ background: 'linear-gradient(135deg,#137A39 0%,#15803D 100%)', borderRadius: 4, padding: 16, marginTop: 14, color: '#fff' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 14, letterSpacing: '1.2px', opacity: .85 }}>VALOR DEL HATO</span>
+            <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 14, letterSpacing: '1.2px', opacity: .85 }}>{conPrecio ? '¿CUÁNTO VALE MI GANADO HOY?' : 'VALOR DEL HATO'}</span>
             <div style={{ display: 'flex', gap: 2, background: 'rgba(255,255,255,.18)', borderRadius: 4, padding: 2 }}>
               {(['COP', 'USD'] as const).map(m => (
                 <button key={m} onClick={() => setMoneda(m)} style={{
@@ -158,6 +168,11 @@ export default function InicioScreen({ finca, role, moneda, setMoneda, onOpenDra
           </div>
           <div style={{ fontFamily: 'var(--font-jetbrains)', fontWeight: 700, fontSize: 32, marginTop: 9, lineHeight: 1, letterSpacing: '-.5px' }}>{valorBig}</div>
           <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 14, opacity: .8, marginTop: 6 }}>{valorSub}</div>
+          {!precioKg && onPonerPrecio && (
+            <button onClick={onPonerPrecio} style={{ marginTop: 10, width: '100%', height: 42, border: '1px solid rgba(255,255,255,.6)', borderRadius: 4, background: 'rgba(255,255,255,.14)', color: '#fff', fontWeight: 800, fontSize: 13.5, cursor: 'pointer' }}>
+              Ponga el precio del kilo y vea cuánto vale su ganado hoy
+            </button>
+          )}
           <div style={{ display: 'flex', gap: 9, marginTop: 14 }}>
             <div style={{ flex: 1, background: 'rgba(255,255,255,.14)', borderRadius: 4, padding: '9px 11px' }}>
               <div style={{ fontSize: 14, opacity: .85 }}>Ganancia del mes</div>
