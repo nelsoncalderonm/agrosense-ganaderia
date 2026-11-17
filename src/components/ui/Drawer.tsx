@@ -23,6 +23,7 @@ const MENU_ITEMS = [
   { key: 'agenda',    label: 'Calendario',       icon: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01' },
   { key: 'finanzas',  label: 'Finanzas',         icon: 'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6' },
   { key: 'potreros',  label: 'Potreros',         icon: 'M3 7h18M3 12h18M3 17h18', locked: true },
+  { key: 'sinigan',   label: 'Sinigán',          icon: 'M9 12l2 2 4-4M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6z', soon: true },
   { key: 'reportes',  label: 'Reportes',         icon: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z' },
   { key: 'ajustes',   label: 'Ajustes',          icon: 'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z' },
 ];
@@ -95,6 +96,9 @@ export default function Drawer({ open, finca, displayName, role, onClose, onNavi
                 )}
               </div>
               <span style={{ fontSize: 19, fontWeight: active ? 700 : 600 }}>{item.label}</span>
+              {'soon' in item && item.soon && (
+                <span style={{ marginLeft: 'auto', background: '#FEF3C7', color: '#B45309', fontSize: 13, fontWeight: 700, borderRadius: 3, padding: '2px 6px' }}>PRONTO</span>
+              )}
               {item.locked && (
                 <span style={{ marginLeft: 'auto', background: '#F3F4F6', color: '#4A5E4A', fontSize: 13, fontWeight: 700, borderRadius: 3, padding: '2px 6px' }}>PRO</span>
               )}
