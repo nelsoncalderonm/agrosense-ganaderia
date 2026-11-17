@@ -21,27 +21,27 @@ const CATEGORIAS = ['Ceba', 'Levante', 'Cría'] as const;
 const SEXOS = ['Novillo', 'Toro', 'Vaca', 'Novilla', 'Ternero', 'Ternera'];
 
 const inp: React.CSSProperties = {
-  width: '100%', height: 46, border: '1.5px solid #C5D2C0', borderRadius: 4,
-  padding: '0 12px', fontSize: 15, background: '#fff', outline: 'none',
-  fontFamily: 'inherit', color: '#1A2B1A', boxSizing: 'border-box',
+  width: '100%', height: 46, border: '1.5px solid #8FA38A', borderRadius: 4,
+  padding: '0 12px', fontSize: 19, background: '#fff', outline: 'none',
+  fontFamily: 'inherit', color: '#0F1A0F', boxSizing: 'border-box',
 };
 const lbl: React.CSSProperties = {
-  fontSize: 11, color: '#6E8A6E', fontWeight: 700, letterSpacing: '.4px', marginBottom: 6, display: 'block',
+  fontSize: 15, color: '#3A4D3A', fontWeight: 700, letterSpacing: '.4px', marginBottom: 6, display: 'block',
 };
 const btnPrimario = (disabled = false): React.CSSProperties => ({
   height: 48, padding: '0 22px', border: 'none', borderRadius: 4,
-  background: disabled ? '#9DB39D' : '#15A34A', color: '#fff', fontWeight: 800, fontSize: 14,
+  background: disabled ? '#4A5E4A' : '#15803D', color: '#fff', fontWeight: 800, fontSize: 18,
   cursor: disabled ? 'default' : 'pointer',
 });
 const btnSecundario: React.CSSProperties = {
-  height: 48, padding: '0 18px', border: '1px solid #C5D2C0', borderRadius: 4,
-  background: '#fff', color: '#3A5A3A', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+  height: 48, padding: '0 18px', border: '1px solid #8FA38A', borderRadius: 4,
+  background: '#fff', color: '#3A5A3A', fontWeight: 700, fontSize: 17, cursor: 'pointer',
 };
-const caja: React.CSSProperties = { background: '#fff', border: '1px solid #E1E8DD', borderRadius: 6, padding: 14 };
+const caja: React.CSSProperties = { background: '#fff', border: '1px solid #B9C6B4', borderRadius: 6, padding: 14 };
 
 function Aviso({ msg }: { msg: string | null }) {
   if (!msg) return null;
-  return <div style={{ fontSize: 12.5, color: '#DC2626', background: '#FEE2E2', border: '1px solid #FCA5A5', padding: '8px 12px', borderRadius: 4 }}>{msg}</div>;
+  return <div style={{ fontSize: 16, color: '#B91C1C', background: '#FEE2E2', border: '1px solid #FCA5A5', padding: '8px 12px', borderRadius: 4 }}>{msg}</div>;
 }
 
 interface Props {
@@ -81,19 +81,19 @@ export default function OnboardingWizard({ org, session, onTerminar, onSalir }: 
       <div style={{ maxWidth: 560, margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
           <div>
-            <div style={{ fontWeight: 800, fontSize: 18 }}>Bienvenido a AgroSense</div>
-            <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, color: '#6E8A6E', marginTop: 3 }}>
+            <div style={{ fontWeight: 800, fontSize: 21 }}>Bienvenido a AgroSense</div>
+            <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 15, color: '#3A4D3A', marginTop: 3 }}>
               Paso {idx + 1} de {PASOS.length} · {PASOS[idx].titulo}
             </div>
           </div>
-          <button onClick={onSalir} style={{ background: 'none', border: 'none', color: '#6E8A6E', fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}>
+          <button onClick={onSalir} style={{ background: 'none', border: 'none', color: '#3A4D3A', fontSize: 16, cursor: 'pointer', textDecoration: 'underline' }}>
             Cerrar sesión
           </button>
         </div>
 
         <div style={{ display: 'flex', gap: 4, marginBottom: 22 }} aria-hidden>
           {PASOS.map((p, i) => (
-            <div key={p.key} style={{ flex: 1, height: 5, borderRadius: 3, background: i <= idx ? '#15A34A' : '#D5E0D0' }} />
+            <div key={p.key} style={{ flex: 1, height: 5, borderRadius: 3, background: i <= idx ? '#15803D' : '#D5E0D0' }} />
           ))}
         </div>
 
@@ -148,7 +148,7 @@ function PasoContrasena({ nombreInicial, email, onListo }: { nombreInicial: stri
 
   return (
     <form onSubmit={guardar} style={{ ...caja, display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ fontSize: 14, color: '#3A5A3A', lineHeight: 1.5 }}>
+      <div style={{ fontSize: 18, color: '#3A5A3A', lineHeight: 1.5 }}>
         Vamos a dejar tu finca lista en unos minutos. Primero crea la contraseña con la que vas a entrar
         como <b>{email}</b>.
       </div>
@@ -188,9 +188,9 @@ function PasoFinca({ org, finca, onCreada, onListo }: { org: DbOrgOnboarding; fi
   if (finca) {
     return (
       <div style={{ ...caja, display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div style={{ fontSize: 14, color: '#3A5A3A' }}>Tu finca ya está registrada:</div>
-        <div style={{ fontWeight: 800, fontSize: 17 }}>{finca.nombre}</div>
-        <div style={{ fontSize: 12.5, color: '#6E8A6E' }}>{[finca.ubicacion, finca.hectareas ? `${finca.hectareas} ha` : null].filter(Boolean).join(' · ')}</div>
+        <div style={{ fontSize: 18, color: '#3A5A3A' }}>Tu finca ya está registrada:</div>
+        <div style={{ fontWeight: 800, fontSize: 20 }}>{finca.nombre}</div>
+        <div style={{ fontSize: 16, color: '#3A4D3A' }}>{[finca.ubicacion, finca.hectareas ? `${finca.hectareas} ha` : null].filter(Boolean).join(' · ')}</div>
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <button onClick={onListo} style={btnPrimario()}>Continuar</button>
         </div>
@@ -218,7 +218,7 @@ function PasoFinca({ org, finca, onCreada, onListo }: { org: DbOrgOnboarding; fi
 
   return (
     <form onSubmit={guardar} style={{ ...caja, display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ fontSize: 14, color: '#3A5A3A', lineHeight: 1.5 }}>Cuéntanos de tu finca. Si tienes varias, empieza por una; las demás las agregas después.</div>
+      <div style={{ fontSize: 18, color: '#3A5A3A', lineHeight: 1.5 }}>Cuéntanos de tu finca. Si tienes varias, empieza por una; las demás las agregas después.</div>
       <div>
         <label style={lbl}>NOMBRE DE TU GANADERÍA O EMPRESA</label>
         <input style={inp} value={orgNombre} onChange={e => setOrgNombre(e.target.value)} />
@@ -273,15 +273,15 @@ function PasoPotreros({ finca, potreros, onCambio, onListo, onAtras }: {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ fontSize: 14, color: '#3A5A3A', lineHeight: 1.5 }}>
+      <div style={{ fontSize: 18, color: '#3A5A3A', lineHeight: 1.5 }}>
         Agrega los potreros de <b>{finca.nombre}</b> para saber dónde está cada animal y controlar la rotación. Puedes saltar este paso.
       </div>
       {potreros.length > 0 && (
         <div style={{ ...caja, padding: 0 }}>
           {potreros.map((p, i) => (
-            <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderTop: i ? '1px solid #EDF1EA' : 'none', fontSize: 13.5 }}>
+            <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderTop: i ? '1px solid #EDF1EA' : 'none', fontSize: 17 }}>
               <span style={{ fontWeight: 600 }}>{p.nombre}</span>
-              <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, color: '#6E8A6E' }}>{p.capacidad ? `${p.capacidad} animales` : ''}</span>
+              <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 15, color: '#3A4D3A' }}>{p.capacidad ? `${p.capacidad} animales` : ''}</span>
             </div>
           ))}
         </div>
@@ -302,7 +302,7 @@ function PasoPotreros({ finca, potreros, onCambio, onListo, onAtras }: {
           </div>
         </div>
         <Aviso msg={err} />
-        <button type="submit" disabled={saving || !nombre.trim()} style={{ ...btnSecundario, color: '#15A34A', borderColor: '#15A34A' }}>
+        <button type="submit" disabled={saving || !nombre.trim()} style={{ ...btnSecundario, color: '#15803D', borderColor: '#15803D' }}>
           {saving ? 'Agregando…' : '+ Agregar potrero'}
         </button>
       </form>
@@ -385,14 +385,14 @@ function PasoAnimales({ finca, potreros, onRegistrados, onListo, onAtras }: {
 
   const tab = (k: 'pegar' | 'uno', t: string) => (
     <button type="button" onClick={() => setModo(k)} style={{
-      flex: 1, height: 40, border: 'none', borderBottom: `3px solid ${modo === k ? '#15A34A' : 'transparent'}`,
-      background: 'none', fontWeight: 700, fontSize: 13, color: modo === k ? '#15A34A' : '#6E8A6E', cursor: 'pointer',
+      flex: 1, height: 40, border: 'none', borderBottom: `3px solid ${modo === k ? '#15803D' : 'transparent'}`,
+      background: 'none', fontWeight: 700, fontSize: 17, color: modo === k ? '#15803D' : '#3A4D3A', cursor: 'pointer',
     }}>{t}</button>
   );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ fontSize: 14, color: '#3A5A3A', lineHeight: 1.5 }}>
+      <div style={{ fontSize: 18, color: '#3A5A3A', lineHeight: 1.5 }}>
         Registra tu hato. Si ya lo tienes en Excel, copia las columnas y pégalas aquí. El número de arete es el que leerá el lector RFID.
       </div>
       {total > 0 && (
@@ -414,14 +414,14 @@ function PasoAnimales({ finca, potreros, onRegistrados, onListo, onAtras }: {
         <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
           {modo === 'pegar' ? (
             <>
-              <div style={{ fontSize: 12, color: '#6E8A6E', lineHeight: 1.5 }}>
+              <div style={{ fontSize: 16, color: '#3A4D3A', lineHeight: 1.5 }}>
                 Columnas en este orden: <b>arete, nombre, raza, sexo, categoría, peso (kg)</b>. Solo el arete es obligatorio.
               </div>
               <textarea value={texto} onChange={e => setTexto(e.target.value)} rows={7}
                 placeholder={'arete\tnombre\traza\tsexo\tcategoría\tpeso\n1023\tPinto\tBrahman\tNovillo\tCeba\t320\n1024\t\tCebú\tNovillo\tLevante\t245'}
-                style={{ ...inp, height: 'auto', padding: 10, fontFamily: 'var(--font-jetbrains)', fontSize: 12.5, resize: 'vertical' }} />
+                style={{ ...inp, height: 'auto', padding: 10, fontFamily: 'var(--font-jetbrains)', fontSize: 16, resize: 'vertical' }} />
               {vista && (
-                <div style={{ fontSize: 12.5, color: '#3A5A3A' }}>
+                <div style={{ fontSize: 16, color: '#3A5A3A' }}>
                   {vista.filas.length} {vista.filas.length === 1 ? 'animal listo' : 'animales listos'} para registrar
                   {vista.errores.length > 0 && <span style={{ color: '#B45309' }}> · {vista.errores.length} líneas con problemas</span>}
                 </div>
@@ -450,7 +450,7 @@ function PasoAnimales({ finca, potreros, onRegistrados, onListo, onAtras }: {
             </form>
           )}
           {errores.length > 0 && (
-            <div style={{ fontSize: 12, color: '#B45309', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 4, padding: '8px 12px', maxHeight: 140, overflowY: 'auto' }}>
+            <div style={{ fontSize: 16, color: '#B45309', background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 4, padding: '8px 12px', maxHeight: 140, overflowY: 'auto' }}>
               {errores.map((e, i) => <div key={i}>{e}</div>)}
             </div>
           )}
@@ -487,14 +487,14 @@ function PasoEquipo({ finca, onInvitado, onListo, onAtras }: { finca: DbFinca; o
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ fontSize: 14, color: '#3A5A3A', lineHeight: 1.5 }}>
+      <div style={{ fontSize: 18, color: '#3A5A3A', lineHeight: 1.5 }}>
         Invita a tu mayordomo, vaqueros o contador. Cada uno recibe un correo para entrar y solo ve lo que le corresponde.
       </div>
       {invitados.length > 0 && (
         <div style={{ ...caja, padding: 0 }}>
           {invitados.map((m, i) => (
-            <div key={i} style={{ padding: '10px 14px', borderTop: i ? '1px solid #EDF1EA' : 'none', fontSize: 13 }}>
-              <b>{m.nombre}</b> · {m.email} <span style={{ color: '#15A34A', fontWeight: 700 }}>· invitación enviada</span>
+            <div key={i} style={{ padding: '10px 14px', borderTop: i ? '1px solid #EDF1EA' : 'none', fontSize: 17 }}>
+              <b>{m.nombre}</b> · {m.email} <span style={{ color: '#15803D', fontWeight: 700 }}>· invitación enviada</span>
             </div>
           ))}
         </div>
@@ -509,7 +509,7 @@ function PasoEquipo({ finca, onInvitado, onListo, onAtras }: { finca: DbFinca; o
           </select>
         </div>
         <Aviso msg={err} />
-        <button type="submit" disabled={saving || !nombre.trim() || !email.trim()} style={{ ...btnSecundario, color: '#15A34A', borderColor: '#15A34A' }}>
+        <button type="submit" disabled={saving || !nombre.trim() || !email.trim()} style={{ ...btnSecundario, color: '#15803D', borderColor: '#15803D' }}>
           {saving ? 'Enviando…' : 'Enviar invitación'}
         </button>
       </form>
@@ -530,22 +530,22 @@ function PasoLector({ onListo, onAtras }: { onListo: () => void; onAtras: () => 
   ];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ fontSize: 14, color: '#3A5A3A', lineHeight: 1.5 }}>Con el lector RFID pesas y registras animales sin escribir el arete a mano.</div>
+      <div style={{ fontSize: 18, color: '#3A5A3A', lineHeight: 1.5 }}>Con el lector RFID pesas y registras animales sin escribir el arete a mano.</div>
       <div style={{ ...caja, display: 'flex', flexDirection: 'column', gap: 12 }}>
         {items.map(([t, d], i) => (
           <div key={t} style={{ display: 'flex', gap: 12 }}>
-            <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#DCFCE7', color: '#15A34A', fontWeight: 800, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</div>
-            <div><div style={{ fontWeight: 700, fontSize: 13.5 }}>{t}</div><div style={{ fontSize: 12.5, color: '#6E8A6E', lineHeight: 1.45 }}>{d}</div></div>
+            <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#DCFCE7', color: '#15803D', fontWeight: 800, fontSize: 17, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</div>
+            <div><div style={{ fontWeight: 700, fontSize: 17 }}>{t}</div><div style={{ fontSize: 16, color: '#3A4D3A', lineHeight: 1.45 }}>{d}</div></div>
           </div>
         ))}
-        <div style={{ fontSize: 12, color: '#6E8A6E', background: '#F5F8F3', borderRadius: 4, padding: '8px 10px' }}>
+        <div style={{ fontSize: 16, color: '#3A4D3A', background: '#F5F8F3', borderRadius: 4, padding: '8px 10px' }}>
           En iPhone el navegador aún no permite Bluetooth. Puedes escribir el arete a mano mientras tanto.
         </div>
       </div>
       {tienda && (
-        <a href={tienda} target="_blank" rel="noreferrer" style={{ ...caja, display: 'block', textDecoration: 'none', color: '#1A2B1A' }}>
-          <div style={{ fontWeight: 700, fontSize: 13.5 }}>¿Aún no tienes lector o aretes?</div>
-          <div style={{ fontSize: 12.5, color: '#15A34A', fontWeight: 700, marginTop: 2 }}>Pídelos a Frigorodeo →</div>
+        <a href={tienda} target="_blank" rel="noreferrer" style={{ ...caja, display: 'block', textDecoration: 'none', color: '#0F1A0F' }}>
+          <div style={{ fontWeight: 700, fontSize: 17 }}>¿Aún no tienes lector o aretes?</div>
+          <div style={{ fontSize: 16, color: '#15803D', fontWeight: 700, marginTop: 2 }}>Pídelos a Frigorodeo →</div>
         </a>
       )}
       <Navegacion onAtras={onAtras} onListo={onListo} textoListo="Continuar" />
@@ -560,15 +560,15 @@ function PasoListo({ finca, resumen, onEntrar }: { finca: DbFinca | null; resume
   return (
     <div style={{ ...caja, textAlign: 'center', padding: '28px 18px', display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
       <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#15A34A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5 9-10" /></svg>
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#15803D" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5 9-10" /></svg>
       </div>
-      <div style={{ fontWeight: 800, fontSize: 19 }}>{finca ? `${finca.nombre} está lista` : 'Todo listo'}</div>
+      <div style={{ fontWeight: 800, fontSize: 22 }}>{finca ? `${finca.nombre} está lista` : 'Todo listo'}</div>
       {(resumen.potreros + resumen.animales + resumen.invitados) > 0 && (
-        <div style={{ fontSize: 13, color: '#6E8A6E' }}>
+        <div style={{ fontSize: 17, color: '#3A4D3A' }}>
           {[resumen.potreros && `${resumen.potreros} potreros`, resumen.animales && `${resumen.animales} animales`, resumen.invitados && `${resumen.invitados} invitados`].filter(Boolean).join(' · ')}
         </div>
       )}
-      <div style={{ fontSize: 13.5, color: '#3A5A3A', lineHeight: 1.5, maxWidth: 380 }}>
+      <div style={{ fontSize: 17, color: '#3A5A3A', lineHeight: 1.5, maxWidth: 380 }}>
         Lo siguiente: haz tu primera jornada de pesaje desde la pestaña RFID para empezar a ver la ganancia diaria de peso de cada animal.
       </div>
       <button disabled={saving} onClick={() => { setSaving(true); onEntrar(); }} style={{ ...btnPrimario(saving), marginTop: 6 }}>

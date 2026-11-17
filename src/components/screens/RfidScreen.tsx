@@ -214,7 +214,7 @@ function AnimalCard({ animal, onReset, onRegister }: {
             onKeyDown={e => { if (e.key === 'Enter' && pesoValido) onRegister(pesoNum); }}
             placeholder={animal.peso ? String(animal.peso) : '0'}
             aria-label="Peso en báscula (kg)"
-            style={{ width: '100%', minWidth: 0, fontFamily: 'var(--font-jetbrains)', fontWeight: 700, fontSize: 64, lineHeight: 1, letterSpacing: -2, border: 'none', borderBottom: '2px solid #8FA38A', background: 'transparent', outline: 'none', color: '#1A2B1A', padding: 0 }}
+            style={{ width: '100%', minWidth: 0, fontFamily: 'var(--font-jetbrains)', fontWeight: 700, fontSize: 64, lineHeight: 1, letterSpacing: -2, border: 'none', borderBottom: '2px solid #8FA38A', background: 'transparent', outline: 'none', color: '#0F1A0F', padding: 0 }}
           />
           <span style={{ fontSize: 25, color: '#4A5E4A', fontWeight: 600, fontFamily: 'var(--font-jetbrains)' }}>kg</span>
         </div>

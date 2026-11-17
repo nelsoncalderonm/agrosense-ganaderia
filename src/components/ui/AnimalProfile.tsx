@@ -22,11 +22,11 @@ interface Props {
 
 function AvisoRetiro({ retiro }: { retiro: Retiro }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#FEE2E2', border: '2px solid #DC2626', borderRadius: 4, padding: '12px 14px', marginBottom: 14 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#FEE2E2', border: '2px solid #B91C1C', borderRadius: 4, padding: '12px 14px', marginBottom: 14 }}>
       <span style={{ fontSize: 22, lineHeight: 1 }} aria-hidden>⛔</span>
       <div>
         <div style={{ fontSize: 15, fontWeight: 800, color: '#991B1B' }}>No vender hasta el {fechaCorta(retiro.hasta)}</div>
-        <div style={{ fontSize: 12.5, color: '#991B1B', marginTop: 2 }}>Está en retiro{retiro.producto ? ` por ${retiro.producto}` : ''}. En planta lo pueden rechazar.</div>
+        <div style={{ fontSize: 16, color: '#991B1B', marginTop: 2 }}>Está en retiro{retiro.producto ? ` por ${retiro.producto}` : ''}. En planta lo pueden rechazar.</div>
       </div>
     </div>
   );
@@ -232,7 +232,7 @@ function SanidadForm({ animal, fincaId, onCancelar, onRegistrada }: {
 
   return (
     <div className="animate-up" style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 6, padding: '16px 14px' }}>
-      <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 12, color: '#2563EB' }}>Sanidad · {animal.nombre}</div>
+      <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 12, color: '#1D4ED8' }}>Sanidad · {animal.nombre}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div><label style={lbl}>TIPO</label>
@@ -255,7 +255,7 @@ function SanidadForm({ animal, fincaId, onCancelar, onRegistrada }: {
         <div><label style={lbl}>DÍAS DE RETIRO (LO DICE LA ETIQUETA DEL PRODUCTO)</label>
           <input style={{ ...inp, fontSize: 18, fontWeight: 700 }} type="number" inputMode="numeric" min={0} max={365} value={diasRetiro} onChange={e => setDiasRetiro(e.target.value)} placeholder="0 si no tiene" />
           {Number(diasRetiro) > 0 && (
-            <div style={{ fontSize: 12.5, color: '#991B1B', marginTop: 5, fontWeight: 600 }}>
+            <div style={{ fontSize: 16, color: '#991B1B', marginTop: 5, fontWeight: 600 }}>
               No se podrá vender hasta el {fechaCorta(new Date(new Date(`${fecha}T12:00:00`).getTime() + Number(diasRetiro) * 86400000).toLocaleDateString('en-CA'))}
             </div>
           )}
@@ -263,10 +263,10 @@ function SanidadForm({ animal, fincaId, onCancelar, onRegistrada }: {
         <div><label style={lbl}>NOTAS (OPCIONAL)</label>
           <input style={inp} value={notas} onChange={e => setNotas(e.target.value)} placeholder="Observaciones" />
         </div>
-        {err && <div style={{ fontSize: 12, color: '#DC2626', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{err}</div>}
+        {err && <div style={{ fontSize: 16, color: '#B91C1C', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{err}</div>}
         <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-          <button onClick={onCancelar} style={{ flex: 1, height: 46, border: '1px solid #C5D2C0', borderRadius: 4, background: '#fff', color: '#6E8A6E', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
-          <button onClick={handleGuardar} disabled={saving} style={{ flex: 1.6, height: 46, border: 'none', borderRadius: 4, background: saving ? '#6E8A6E' : '#2563EB', color: '#fff', fontWeight: 800, fontSize: 13, cursor: saving ? 'default' : 'pointer' }}>
+          <button onClick={onCancelar} style={{ flex: 1, height: 46, border: '1px solid #8FA38A', borderRadius: 4, background: '#fff', color: '#3A4D3A', fontWeight: 700, fontSize: 17, cursor: 'pointer' }}>Cancelar</button>
+          <button onClick={handleGuardar} disabled={saving} style={{ flex: 1.6, height: 46, border: 'none', borderRadius: 4, background: saving ? '#3A4D3A' : '#1D4ED8', color: '#fff', fontWeight: 800, fontSize: 17, cursor: saving ? 'default' : 'pointer' }}>
             {saving ? 'Guardando…' : 'Guardar'}
           </button>
         </div>
@@ -461,7 +461,7 @@ export default function AnimalProfile({ animal, fincaId, fincas = [], onClose, o
               </div>
               {fincaId && (
                 <div style={{ display: 'flex', gap: 8, marginTop: 9 }}>
-                  <button onClick={() => setShowSanidad(true)} style={{ flex: 1, height: 44, border: '1px solid #BFDBFE', borderRadius: 4, background: '#EFF6FF', color: '#2563EB', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>
+                  <button onClick={() => setShowSanidad(true)} style={{ flex: 1, height: 44, border: '1px solid #BFDBFE', borderRadius: 4, background: '#EFF6FF', color: '#1D4ED8', fontWeight: 700, fontSize: 16, cursor: 'pointer' }}>
                     Sanidad
                   </button>
                   {fincas.length > 1 && (
