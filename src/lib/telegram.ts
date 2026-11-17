@@ -107,7 +107,6 @@ export async function asegurarWebhook(): Promise<void> {
   await api('setWebhook', { url, secret_token: secret, allowed_updates: ['message'] });
   await api('setMyCommands', {
     commands: [
-      { command: 'lluvia', description: 'Anotar lluvia en mm. Ej: /lluvia 12' },
       { command: 'resumen', description: 'Reporte de los últimos 7 días' },
       { command: 'ayuda', description: 'Ver comandos' },
     ],

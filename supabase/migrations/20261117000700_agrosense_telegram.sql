@@ -1,4 +1,4 @@
--- AgroSense: bot de Telegram, reportes semanales y registro de lluvia.
+-- AgroSense: bot de Telegram y reportes semanales.
 -- Solo agrega tablas, columnas y funciones nuevas en el esquema agrosense.
 
 -- ---------- Telegram ----------
@@ -42,35 +42,6 @@ create table agrosense.reportes_enviados (
   unique (vinculo_id, tipo, periodo_inicio)
 );
 
--- ---------- Lluvia ----------
-
-create table agrosense.sensores_lluvia (
-  id uuid primary key default gen_random_uuid(),
-  finca_id uuid not null references agrosense.fincas(id) on delete cascade,
-  nombre text not null,
-  proveedor text not null check (proveedor in ('ecowitt','lorawan','davis','otro')),
-  device_id text,           -- MAC/EUI del equipo. Las llaves de API van en variables de entorno, no aquí.
-  activo boolean not null default true,
-  ultima_lectura_at timestamptz,
-  created_at timestamptz not null default now()
-);
-
-create table agrosense.lluvia_registros (
-  id uuid primary key default gen_random_uuid(),
-  finca_id uuid not null references agrosense.fincas(id) on delete cascade,
-  fecha date not null,
-  mm numeric(6,1) not null check (mm >= 0 and mm <= 500),
-  fuente text not null default 'manual' check (fuente in ('manual','telegram','sensor')),
-  sensor_id uuid references agrosense.sensores_lluvia(id) on delete set null,
-  registrado_por uuid default auth.uid(),
-  notas text,
-  created_at timestamptz not null default now()
-);
--- Un dato manual por finca y día (se corrige con upsert); un dato por sensor y día.
-create unique index lluvia_manual_dia_uq on agrosense.lluvia_registros (finca_id, fecha) where sensor_id is null;
-create unique index lluvia_sensor_dia_uq on agrosense.lluvia_registros (sensor_id, fecha) where sensor_id is not null;
-create index lluvia_finca_fecha_idx on agrosense.lluvia_registros (finca_id, fecha);
-
 -- ---------- Agenda: quién completó cada tarea ----------
 
 alter table agrosense.eventos
@@ -97,8 +68,6 @@ create trigger eventos_marcar_completado before insert or update of completado o
 alter table agrosense.telegram_vinculos enable row level security;
 alter table agrosense.telegram_codigos enable row level security;   -- sin políticas: solo service role
 alter table agrosense.reportes_enviados enable row level security;
-alter table agrosense.sensores_lluvia enable row level security;
-alter table agrosense.lluvia_registros enable row level security;
 
 -- Cada quien ve su vínculo; owner/admin ven los de su finca. Altas solo por el servidor.
 create policy telegram_vinculos_select on agrosense.telegram_vinculos for select to authenticated
@@ -112,22 +81,8 @@ create policy telegram_vinculos_delete on agrosense.telegram_vinculos for delete
 create policy reportes_enviados_select on agrosense.reportes_enviados for select to authenticated
   using (agrosense.rol_en_finca(finca_id) in ('owner','admin'));
 
-create policy sensores_lluvia_select on agrosense.sensores_lluvia for select to authenticated
-  using (agrosense.tiene_acceso(finca_id));
-create policy sensores_lluvia_write on agrosense.sensores_lluvia for all to authenticated
-  using (agrosense.rol_en_finca(finca_id) in ('owner','admin'))
-  with check (agrosense.rol_en_finca(finca_id) in ('owner','admin'));
-
-create policy lluvia_registros_miembros on agrosense.lluvia_registros for all to authenticated
-  using (agrosense.tiene_acceso(finca_id)) with check (agrosense.tiene_acceso(finca_id));
-
-grant select, insert, update, delete on
-  agrosense.telegram_vinculos, agrosense.reportes_enviados, agrosense.sensores_lluvia, agrosense.lluvia_registros
-  to authenticated;
-grant all on
-  agrosense.telegram_vinculos, agrosense.telegram_codigos, agrosense.reportes_enviados,
-  agrosense.sensores_lluvia, agrosense.lluvia_registros
-  to service_role;
+grant select, insert, update, delete on agrosense.telegram_vinculos, agrosense.reportes_enviados to authenticated;
+grant all on agrosense.telegram_vinculos, agrosense.telegram_codigos, agrosense.reportes_enviados to service_role;
 
 -- ---------- Reporte semanal ----------
 -- Devuelve todo el reporte de una finca entre p_desde y p_hasta (fechas en hora de Colombia, ambos incluidos).
@@ -160,12 +115,6 @@ begin
     select a.arete, a.nombre, u.gdp_calculado as gdp, u.peso_kg
     from ult u join animales a on a.id = u.animal_id
   ),
-  lluvia as (  -- por día: si hay sensor usamos su dato, si no el manual
-    select fecha, coalesce(max(mm) filter (where sensor_id is not null), max(mm)) as mm
-    from lluvia_registros
-    where finca_id = p_finca_id and fecha between (p_hasta - 364) and p_hasta
-    group by fecha
-  ),
   equipo as (
     select m.auth_user_id, m.nombre, m.rol from membresias m where m.finca_id = p_finca_id
   )
@@ -197,15 +146,6 @@ begin
       'kg_vendidos', (select coalesce(sum(peso_kg),0) from animal_eventos where finca_id = p_finca_id and tipo = 'venta' and fecha between p_desde and p_hasta),
       'bajas', (select count(*) from animal_eventos where finca_id = p_finca_id and tipo = 'baja' and fecha between p_desde and p_hasta)
     ),
-    'lluvia', jsonb_build_object(
-      'mm_periodo', (select coalesce(sum(mm),0) from lluvia where fecha between p_desde and p_hasta),
-      'dias_con_lluvia', (select count(*) from lluvia where fecha between p_desde and p_hasta and mm > 0),
-      'dias_registrados', (select count(*) from lluvia where fecha between p_desde and p_hasta),
-      'mm_mes', (select coalesce(sum(mm),0) from lluvia where fecha between date_trunc('month', p_hasta)::date and p_hasta),
-      'mm_promedio_semanal_12s', (select round(coalesce(sum(mm),0) / 12.0, 1) from lluvia where fecha between p_hasta - 83 and p_hasta),
-      'mm_ultimos_365', (select coalesce(sum(mm),0) from lluvia),
-      'tiene_sensor', exists (select 1 from sensores_lluvia where finca_id = p_finca_id and activo)
-    ),
     'agenda', jsonb_build_object(
       'completadas', (select count(*) from eventos where finca_id = p_finca_id and completado
                        and coalesce((completado_at at time zone 'America/Bogota')::date, fecha) between p_desde and p_hasta),
@@ -219,13 +159,9 @@ begin
            and (s.inicio at time zone 'America/Bogota')::date between p_desde and p_hasta) as sesiones,
         (select count(*) from eventos ev where ev.finca_id = p_finca_id and ev.completado_por = e.auth_user_id
            and (ev.completado_at at time zone 'America/Bogota')::date between p_desde and p_hasta) as tareas,
-        (select count(*) from lluvia_registros l where l.finca_id = p_finca_id and l.registrado_por = e.auth_user_id
-           and l.fecha between p_desde and p_hasta) as lluvias,
         (select count(*) from pes_act p where p.usuario_id = e.auth_user_id)
           + (select count(*) from eventos ev where ev.finca_id = p_finca_id and ev.completado_por = e.auth_user_id
-           and (ev.completado_at at time zone 'America/Bogota')::date between p_desde and p_hasta)
-          + (select count(*) from lluvia_registros l where l.finca_id = p_finca_id and l.registrado_por = e.auth_user_id
-           and l.fecha between p_desde and p_hasta) as total
+           and (ev.completado_at at time zone 'America/Bogota')::date between p_desde and p_hasta) as total
       from equipo e
     ) t), '[]'::jsonb)
   ) into res;

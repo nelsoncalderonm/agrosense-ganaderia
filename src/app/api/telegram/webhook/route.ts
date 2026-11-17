@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
-import { enviarMensaje, esc, hoyBogota, sumarDias, fechaCorta, webhookSecret, type TgUpdate } from '@/lib/telegram';
+import { enviarMensaje, esc, hoyBogota, sumarDias, webhookSecret, type TgUpdate } from '@/lib/telegram';
 import { formatearReporte, type ReporteFinca } from '@/lib/reporteFinca';
 
 type Vinculo = {
@@ -8,13 +8,8 @@ type Vinculo = {
   fincas: { nombre: string } | null;
 };
 
-const AYUDA_TRABAJADOR = [
-  '<b>Comandos</b>',
-  '/lluvia 12 — anota 12 mm de lluvia de hoy',
-  '/lluvia 0 — no llovió',
-  '/lluvia 8 ayer — anota la lluvia de ayer',
-].join('\n');
-const AYUDA_DUENO = AYUDA_TRABAJADOR + '\n/resumen — reporte de los últimos 7 días\n\nCada lunes a las 6 a.m. le llega el reporte semanal.';
+const AYUDA_DUENO = '<b>Comandos</b>\n/resumen — reporte de los últimos 7 días\n\nCada lunes a las 6 a.m. le llega el reporte semanal.';
+const AYUDA_TRABAJADOR = 'Este bot envía el reporte semanal al propietario y al administrador de la finca.';
 
 export async function POST(request: Request) {
   const secret = webhookSecret();
@@ -77,30 +72,6 @@ async function manejar(chatId: number, texto: string, username: string | null) {
     return;
   }
   const esDueno = (v: Vinculo) => v.membresias?.rol === 'owner' || v.membresias?.rol === 'admin';
-
-  if (cmd === '/lluvia') {
-    const mm = Number((args[0] ?? '').replace(',', '.'));
-    if (!args[0] || !Number.isFinite(mm) || mm < 0 || mm > 500) {
-      await enviarMensaje(chatId, 'Escriba los milímetros, por ejemplo: <code>/lluvia 12</code> (o <code>/lluvia 0</code> si no llovió).');
-      return;
-    }
-    const hoy = hoyBogota();
-    let fecha = hoy;
-    const f = (args[1] ?? '').toLowerCase();
-    if (f === 'ayer') fecha = sumarDias(hoy, -1);
-    else if (/^\d{4}-\d{2}-\d{2}$/.test(f) && f <= hoy) fecha = f;
-    // Varias fincas: la del vínculo más reciente.
-    const v = vinculos[0];
-    const fila = { finca_id: v.finca_id, fecha, mm: Math.round(mm * 10) / 10, fuente: 'telegram', registrado_por: v.auth_user_id };
-    const { data: prev } = await admin.from('lluvia_registros').select('id')
-      .eq('finca_id', v.finca_id).eq('fecha', fecha).is('sensor_id', null).maybeSingle();
-    const { error } = prev
-      ? await admin.from('lluvia_registros').update(fila).eq('id', prev.id)
-      : await admin.from('lluvia_registros').insert(fila);
-    if (error) throw error;
-    await enviarMensaje(chatId, `🌧 Anotado: <b>${fila.mm} mm</b> el ${fechaCorta(fecha)} en ${esc(v.fincas?.nombre ?? 'la finca')}.${prev ? ' (Reemplazó el dato anterior.)' : ''}`);
-    return;
-  }
 
   if (cmd === '/resumen') {
     const propias = vinculos.filter(esDueno);

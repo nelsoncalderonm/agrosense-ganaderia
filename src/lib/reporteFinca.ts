@@ -3,7 +3,7 @@ import { esc, fechaCorta } from '@/lib/telegram';
 
 // Forma del JSON que devuelve agrosense.reporte_finca(finca, desde, hasta).
 type AnimalRank = { arete: string; nombre: string | null; gdp: number; peso_kg: number };
-type Trabajador = { nombre: string; rol: string; pesajes: number; sesiones: number; tareas: number; lluvias: number; total: number };
+type Trabajador = { nombre: string; rol: string; pesajes: number; sesiones: number; tareas: number; total: number };
 export type ReporteFinca = {
   finca: { id: string; nombre: string };
   desde: string; hasta: string; dias: number;
@@ -14,7 +14,6 @@ export type ReporteFinca = {
     mejores: AnimalRank[]; peores: AnimalRank[]; gdp_bajo_umbral: number;
   };
   hato: { compras: number; nacimientos: number; traslados_entrada: number; traslados_salida: number; ventas: number; kg_vendidos: number; bajas: number };
-  lluvia: { mm_periodo: number; dias_con_lluvia: number; dias_registrados: number; mm_mes: number; mm_promedio_semanal_12s: number; mm_ultimos_365: number; tiene_sensor: boolean };
   agenda: { completadas: number; vencidas: number; proxima_semana: number };
   mano_de_obra: Trabajador[];
 };
@@ -34,7 +33,7 @@ function flecha(actual: number | null, anterior: number | null): string {
 }
 
 export function formatearReporte(r: ReporteFinca, titulo = 'Reporte semanal'): string {
-  const p = r.produccion, h = r.hato, l = r.lluvia, a = r.agenda;
+  const p = r.produccion, h = r.hato, a = r.agenda;
   const out: string[] = [];
 
   out.push(`🐂 <b>${esc(titulo)} · ${esc(r.finca.nombre)}</b>`);
@@ -75,17 +74,6 @@ export function formatearReporte(r: ReporteFinca, titulo = 'Reporte semanal'): s
   if (h.bajas) mov.push(`${h.bajas} baja(s) ⚠️`);
   out.push(`• Movimientos: ${mov.length ? mov.join(', ') : 'ninguno'}`);
 
-  // Lluvia
-  out.push('', '<b>🌧 Lluvia</b>');
-  if (l.dias_registrados === 0 && l.mm_ultimos_365 === 0) {
-    out.push('Aún no hay registros de lluvia. Anótela con /lluvia 12 (milímetros del pluviómetro).');
-  } else {
-    out.push(`• Semana: <b>${n1(l.mm_periodo)} mm</b> en ${l.dias_con_lluvia} día(s) con lluvia`);
-    out.push(`• Promedio semanal (12 semanas): ${n1(l.mm_promedio_semanal_12s)} mm`);
-    out.push(`• Acumulado del mes: ${n1(l.mm_mes)} mm`);
-    if (!l.tiene_sensor && l.dias_registrados < r.dias) out.push(`• Días registrados: ${l.dias_registrados} de ${r.dias}`);
-  }
-
   // Mano de obra
   out.push('', '<b>👷 Mano de obra</b>');
   const equipo = r.mano_de_obra.filter(t => t.rol !== 'contable');
@@ -94,7 +82,6 @@ export function formatearReporte(r: ReporteFinca, titulo = 'Reporte semanal'): s
     const partes: string[] = [];
     if (t.pesajes) partes.push(`${t.pesajes} pesajes${t.sesiones ? ` en ${t.sesiones} sesión(es)` : ''}`);
     if (t.tareas) partes.push(`${t.tareas} tarea(s)`);
-    if (t.lluvias) partes.push(`${t.lluvias} registro(s) de lluvia`);
     const sinNada = t.total === 0 && t.rol === 'vaquero';
     out.push(`• ${esc(t.nombre)} <i>(${ROLES[t.rol] ?? esc(t.rol)})</i>: ${partes.length ? partes.join(', ') : 'sin registros'}${sinNada ? ' ⚠️' : ''}`);
   });
