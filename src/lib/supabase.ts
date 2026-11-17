@@ -127,7 +127,7 @@ export async function getIsSuperadmin(): Promise<boolean> {
 }
 
 export async function getMembresiasFinca(finca_id: string): Promise<DbMembresia[]> {
-  const { data } = await supabase.from('Agrosense_membresias').select('*').eq('finca_id', finca_id).order('nombre');
+  const { data } = await supabase.from('Agrosense_membresias').select('*').eq('finca_id', finca_id).order('arete');
   return (data ?? []) as DbMembresia[];
 }
 
@@ -170,7 +170,7 @@ export async function cambiarPassword(password: string): Promise<{ error: string
 }
 
 export async function getOrganizaciones(): Promise<DbOrganizacion[]> {
-  const { data } = await supabase.from('Agrosense_organizaciones').select('*').eq('activa', true).order('nombre');
+  const { data } = await supabase.from('Agrosense_organizaciones').select('*').eq('activa', true).order('arete');
   return (data ?? []) as DbOrganizacion[];
 }
 
@@ -180,12 +180,12 @@ export async function crearOrganizacion(payload: { nombre: string; nit: string |
 }
 
 export async function getPotreros(finca_id: string): Promise<DbPotrero[]> {
-  const { data } = await supabase.from('Agrosense_potreros').select('*').eq('finca_id', finca_id).order('nombre');
+  const { data } = await supabase.from('Agrosense_potreros').select('*').eq('finca_id', finca_id).order('arete');
   return data ?? [];
 }
 
 export async function getAnimales(finca_id: string): Promise<DbAnimal[]> {
-  const { data } = await supabase.from('Agrosense_animales').select('*').eq('finca_id', finca_id).eq('activo', true).order('nombre');
+  const { data } = await supabase.from('Agrosense_animales').select('*').eq('finca_id', finca_id).eq('activo', true).order('arete');
   return data ?? [];
 }
 
@@ -205,7 +205,7 @@ export async function getEventos(finca_id: string): Promise<DbEvento[]> {
 }
 
 export async function getProveedores(finca_id: string): Promise<DbProveedor[]> {
-  const { data } = await supabase.from('Agrosense_proveedores').select('*').eq('finca_id', finca_id).eq('activo', true).order('nombre');
+  const { data } = await supabase.from('Agrosense_proveedores').select('*').eq('finca_id', finca_id).eq('activo', true).order('arete');
   return data ?? [];
 }
 
@@ -223,7 +223,7 @@ export async function desactivarProveedor(id: string): Promise<{ error: string |
 }
 
 export async function getClientes(finca_id: string): Promise<DbCliente[]> {
-  const { data } = await supabase.from('Agrosense_clientes').select('*').eq('finca_id', finca_id).eq('activo', true).order('nombre');
+  const { data } = await supabase.from('Agrosense_clientes').select('*').eq('finca_id', finca_id).eq('activo', true).order('arete');
   return data ?? [];
 }
 

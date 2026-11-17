@@ -271,7 +271,7 @@ export default function AnimalProfile({ animal, fincaId, fincas = [], onClose, o
         <div style={{ padding: '8px 20px 16px', borderBottom: '1px solid #E1E8DD' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ width: 60, height: 60, borderRadius: '50%', background: cat.soft, border: `2px solid ${cat.hex}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 24, color: cat.hex, flexShrink: 0 }}>
-              {animal.nombre.charAt(0)}
+              {animal.sx}
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 800, fontSize: 22, lineHeight: 1 }}>{animal.nombre}</div>

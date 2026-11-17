@@ -73,7 +73,6 @@ function CrearAnimalForm({
   arete: string; fincaId: string; potreros: DbPotrero[];
   onCreado: () => void; onCancelar: () => void;
 }) {
-  const [nombre,    setNombre]    = useState('');
   const [raza,      setRaza]      = useState(RAZAS[0]);
   const [sexo,      setSexo]      = useState(SEXOS[0]);
   const [cat,       setCat]       = useState<'Levante'|'Ceba'|'Cría'>('Ceba');
@@ -85,11 +84,10 @@ function CrearAnimalForm({
   const [err,       setErr]       = useState<string|null>(null);
 
   const handleGuardar = async () => {
-    if (!nombre.trim()) { setErr('Nombre requerido'); return; }
     setSaving(true); setErr(null);
     const { error } = await registrarCompraAnimal({
       finca_id: fincaId, potrero_id: potreroId || null,
-      nombre: nombre.trim(), arete, raza, sexo, categoria: cat,
+      nombre: '', arete, raza, sexo, categoria: cat,
       peso_kg: pesoKg ? parseFloat(pesoKg) : null,
       origen, proveedor: origen === 'comprado' ? (proveedor.trim() || null) : null,
       fecha: new Date().toISOString().slice(0, 10),
@@ -121,10 +119,6 @@ function CrearAnimalForm({
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div>
-          <label style={lbl}>NOMBRE</label>
-          <input style={inp} value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Capitán" autoFocus />
-        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div><label style={lbl}>RAZA</label>
             <select style={inp} value={raza} onChange={e => setRaza(e.target.value)}>
@@ -196,7 +190,7 @@ function AnimalCard({ animal, onReset, onRegister }: {
     <div className="animate-up" style={{ width: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
         <div style={{ width: 52, height: 52, borderRadius: '50%', background: cat.soft, border: `1.5px solid ${cat.hex}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20, color: cat.hex, flexShrink: 0 }}>
-          {animal.nombre.charAt(0)}
+          {animal.sx}
         </div>
         <div>
           <div style={{ fontWeight: 800, fontSize: 20, lineHeight: 1 }}>{animal.nombre}</div>
