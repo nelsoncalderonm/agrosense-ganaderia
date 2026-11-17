@@ -19,6 +19,7 @@ import FinanzasScreen from './screens/FinanzasScreen';
 import AdminScreen from './screens/AdminScreen';
 import ReportesScreen from './screens/ReportesScreen';
 import AjustesScreen from './screens/AjustesScreen';
+import SiniganScreen from './screens/SiniganScreen';
 import Drawer from './ui/Drawer';
 import AnimalProfile from './ui/AnimalProfile';
 import FincaPicker from './ui/FincaPicker';
@@ -191,6 +192,13 @@ export default function AgroSenseApp() {
     setLoading(false);
   };
 
+  // Recarga la finca (datos del predio para Sinigán) y sus datos.
+  const handleRefrescarFincas = async (finca_id: string) => {
+    const f = await getFincas();
+    setFincas(prev => prev.map(x => f.find(n => n.id === x.id) ?? x));
+    await loadFincaData(finca_id);
+  };
+
   const handleRegistrarPesaje = async (animal: Animal, pesoKg: number) => {
     if (!currentFinca) return;
     const { error } = await registrarPesaje({ animal_id: animal.dbId, peso_kg: pesoKg });
@@ -257,7 +265,7 @@ export default function AgroSenseApp() {
         activeTab={tab}
         showAdmin={isSuperadmin}
         onClose={() => {}}
-        onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin','reportes','ajustes'].includes(key)) setTab(key as Tab); }}
+        onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin','reportes','ajustes','sinigan'].includes(key)) setTab(key as Tab); }}
         onSignOut={handleSignOut}
         onOpenFincaPicker={fincas.length > 1 ? () => setFincaPickerOpen(true) : undefined}
       />
@@ -335,6 +343,16 @@ export default function AgroSenseApp() {
             movimientos={movimientos}
           />
         )}
+        {tab === 'sinigan' && (
+          <SiniganScreen
+            key={currentFinca?.id}
+            onOpenDrawer={() => setDrawerOpen(true)}
+            finca={currentFinca}
+            role={currentRole}
+            animales={animales}
+            onRefresh={() => currentFinca && handleRefrescarFincas(currentFinca.id)}
+          />
+        )}
         {tab === 'ajustes' && (
           <AjustesScreen
             onOpenDrawer={() => setDrawerOpen(true)}
@@ -373,7 +391,7 @@ export default function AgroSenseApp() {
             role={currentRole}
             showAdmin={isSuperadmin}
             onClose={() => setDrawerOpen(false)}
-            onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin','reportes','ajustes'].includes(key)) setTab(key as Tab); }}
+            onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin','reportes','ajustes','sinigan'].includes(key)) setTab(key as Tab); }}
             onSignOut={handleSignOut}
           />
         </div>

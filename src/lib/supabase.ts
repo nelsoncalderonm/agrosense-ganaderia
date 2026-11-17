@@ -18,6 +18,9 @@ export type DbFinca = {
   id: string; nombre: string; ubicacion: string | null;
   hectareas: number | null; valor_cop: number | null; activa: boolean;
   organizacion_id: string | null;
+  // Sinigán (predio)
+  ruv?: string | null; departamento?: string | null; municipio?: string | null;
+  responsable_tipo_doc?: string | null; responsable_documento?: string | null;
 };
 
 export type DbOrganizacion = {
@@ -39,6 +42,8 @@ export type DbAnimal = {
   estado: string; estado_txt: string | null;
   peso_actual: number | null; gdp: number | null; gdp_delta: number | null;
   dias_potrero: number | null; activo: boolean;
+  // Sinigán: DIN = identificación oficial; rfid/arete = chapeta de manejo.
+  din?: string | null; especie?: 'bovino' | 'bufalino'; fecha_nacimiento?: string | null;
 };
 
 export type DbPesaje = {
@@ -381,4 +386,87 @@ export async function registrarPesaje(payload: {
     p_fecha: payload.fecha ?? new Date().toISOString(), p_sesion_id: payload.sesion_id ?? null,
   });
   return { data: (data as DbPesaje | null) ?? null, error: error?.message ?? null };
+}
+
+// ---------- Sinigán (fase 1: datos espejo y listas para guía) ----------
+
+export type GuiaEstado = 'borrador' | 'emitida' | 'cerrada' | 'anulada';
+export type GuiaMotivo = 'venta' | 'traslado' | 'feria' | 'sacrificio' | 'otro';
+
+export type DbGuiaAnimal = {
+  id: string; guia_id: string; animal_id: string | null; din: string | null; chapeta_leida: string;
+};
+
+export type DbGuia = {
+  id: string; finca_id: string; estado: GuiaEstado; motivo: GuiaMotivo; fecha: string;
+  numero_guia: string | null; numero_bono: string | null;
+  ruv_destino: string | null; destino_nombre: string | null;
+  transportador: string | null; placa: string | null; notas: string | null;
+  created_at: string;
+  guia_animales?: DbGuiaAnimal[];
+};
+
+export async function actualizarPredioSinigan(finca_id: string, payload: {
+  ruv: string; departamento: string; municipio: string; tipo_doc: string; documento: string;
+}): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('actualizar_predio_sinigan', {
+    p_finca_id: finca_id, p_ruv: payload.ruv, p_departamento: payload.departamento,
+    p_municipio: payload.municipio, p_tipo_doc: payload.tipo_doc, p_documento: payload.documento,
+  });
+  return { error: error?.message ?? null };
+}
+
+export async function actualizarAnimalSinigan(animal_id: string, payload: {
+  din?: string | null; especie?: 'bovino' | 'bufalino'; fecha_nacimiento?: string | null;
+}): Promise<{ error: string | null }> {
+  const limpio: Record<string, unknown> = {};
+  if (payload.din !== undefined) limpio.din = payload.din?.replace(/\s+/g, '') || null;
+  if (payload.especie !== undefined) limpio.especie = payload.especie;
+  if (payload.fecha_nacimiento !== undefined) limpio.fecha_nacimiento = payload.fecha_nacimiento || null;
+  const { error } = await supabase.from('animales').update(limpio).eq('id', animal_id);
+  if (error?.code === '23505') return { error: 'Ese DIN ya está asignado a otro animal activo.' };
+  return { error: error?.message ?? null };
+}
+
+export async function getGuias(finca_id: string): Promise<DbGuia[]> {
+  const { data } = await supabase
+    .from('guias_movilizacion')
+    .select('*, guia_animales(*)')
+    .eq('finca_id', finca_id)
+    .order('created_at', { ascending: false })
+    .limit(30);
+  return (data ?? []) as DbGuia[];
+}
+
+export async function crearGuiaBorrador(payload: {
+  finca_id: string; motivo: GuiaMotivo; fecha: string;
+  ruv_destino: string | null; destino_nombre: string | null;
+  transportador: string | null; placa: string | null; notas: string | null;
+  animales: { animal_id: string | null; din: string | null; chapeta_leida: string }[];
+}): Promise<{ error: string | null; id: string | null }> {
+  const { animales, ...guia } = payload;
+  const { data, error } = await supabase.from('guias_movilizacion').insert(guia).select('id').single();
+  if (error || !data) return { error: error?.message ?? 'No se pudo guardar la lista', id: null };
+  if (animales.length) {
+    const { error: e2 } = await supabase.from('guia_animales').insert(
+      animales.map(a => ({ ...a, guia_id: data.id, finca_id: payload.finca_id })),
+    );
+    if (e2) {
+      await supabase.from('guias_movilizacion').delete().eq('id', data.id);
+      return { error: e2.message, id: null };
+    }
+  }
+  return { error: null, id: data.id };
+}
+
+export async function marcarGuiaEmitida(id: string, numero_guia: string, numero_bono: string | null): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('guias_movilizacion')
+    .update({ estado: 'emitida', numero_guia: numero_guia.trim(), numero_bono: numero_bono?.trim() || null })
+    .eq('id', id);
+  return { error: error?.message ?? null };
+}
+
+export async function anularGuia(id: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('guias_movilizacion').update({ estado: 'anulada' }).eq('id', id);
+  return { error: error?.message ?? null };
 }
