@@ -45,25 +45,25 @@ export default function Drawer({ open, finca, displayName, role, onClose, onNavi
     <>
       {/* Finca header */}
       {onOpenFincaPicker ? (
-        <button onClick={onOpenFincaPicker} style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: '20px 20px 14px', borderBottom: '1px solid #E1E8DD' }}>
+        <button onClick={onOpenFincaPicker} style={{ display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: '20px 20px 14px', borderBottom: '1px solid #B9C6B4' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 8, background: '#DCFCE7', border: '1px solid #15A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, color: '#15A34A', flexShrink: 0 }}>{finca.ini}</div>
+            <div style={{ width: 44, height: 44, borderRadius: 8, background: '#DCFCE7', border: '1px solid #15803D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20, color: '#15803D', flexShrink: 0 }}>{finca.ini}</div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <div style={{ fontWeight: 800, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{finca.nombre}</div>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#15A34A" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M6 9l6 6 6-6"/></svg>
+                <div style={{ fontWeight: 800, fontSize: 20, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{finca.nombre}</div>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#15803D" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><path d="M6 9l6 6 6-6"/></svg>
               </div>
-              <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, color: '#6E8A6E', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{finca.ubic} · {finca.animales} animales</div>
+              <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 15, color: '#3A4D3A', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{finca.ubic} · {finca.animales} animales</div>
             </div>
           </div>
         </button>
       ) : (
-        <div style={{ padding: '20px 20px 14px', borderBottom: '1px solid #E1E8DD' }}>
+        <div style={{ padding: '20px 20px 14px', borderBottom: '1px solid #B9C6B4' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 8, background: '#DCFCE7', border: '1px solid #15A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 16, color: '#15A34A', flexShrink: 0 }}>{finca.ini}</div>
+            <div style={{ width: 44, height: 44, borderRadius: 8, background: '#DCFCE7', border: '1px solid #15803D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 20, color: '#15803D', flexShrink: 0 }}>{finca.ini}</div>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: 800, fontSize: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{finca.nombre}</div>
-              <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, color: '#6E8A6E', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{finca.ubic} · {finca.animales} animales</div>
+              <div style={{ fontWeight: 800, fontSize: 20, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{finca.nombre}</div>
+              <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 15, color: '#3A4D3A', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{finca.ubic} · {finca.animales} animales</div>
             </div>
           </div>
         </div>
@@ -78,25 +78,25 @@ export default function Drawer({ open, finca, displayName, role, onClose, onNavi
               display: 'flex', alignItems: 'center', gap: 12, width: '100%',
               padding: '12px 12px', borderRadius: 8,
               background: active ? '#F0FDF4' : 'none', border: 'none',
-              cursor: 'pointer', textAlign: 'left', color: active ? '#15A34A' : '#1A2B1A',
+              cursor: 'pointer', textAlign: 'left', color: active ? '#15803D' : '#0F1A0F',
             }}>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: '#fff', border: `1px solid ${active ? '#86EFAC' : '#E1E8DD'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: '#fff', border: `1px solid ${active ? '#86EFAC' : '#B9C6B4'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 {item.special === 'cow' ? (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? '#15A34A' : '#1A2B1A'} strokeWidth="1.8" strokeLinecap="round">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? '#15803D' : '#0F1A0F'} strokeWidth="1.8" strokeLinecap="round">
                     <ellipse cx="12" cy="14" rx="7" ry="5"/>
                     <path d="M8 9 Q7 6 5 5M16 9 Q17 6 19 5"/>
-                    <circle cx="10" cy="16" r="1" fill={active ? '#15A34A' : '#1A2B1A'} stroke="none"/>
-                    <circle cx="14" cy="16" r="1" fill={active ? '#15A34A' : '#1A2B1A'} stroke="none"/>
+                    <circle cx="10" cy="16" r="1" fill={active ? '#15803D' : '#0F1A0F'} stroke="none"/>
+                    <circle cx="14" cy="16" r="1" fill={active ? '#15803D' : '#0F1A0F'} stroke="none"/>
                   </svg>
                 ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? '#15A34A' : '#1A2B1A'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={active ? '#15803D' : '#0F1A0F'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <path d={item.icon || ''}/>
                   </svg>
                 )}
               </div>
-              <span style={{ fontSize: 15, fontWeight: active ? 700 : 600 }}>{item.label}</span>
+              <span style={{ fontSize: 19, fontWeight: active ? 700 : 600 }}>{item.label}</span>
               {item.locked && (
-                <span style={{ marginLeft: 'auto', background: '#F3F4F6', color: '#9DB39D', fontSize: 9.5, fontWeight: 700, borderRadius: 3, padding: '2px 6px' }}>PRO</span>
+                <span style={{ marginLeft: 'auto', background: '#F3F4F6', color: '#4A5E4A', fontSize: 13, fontWeight: 700, borderRadius: 3, padding: '2px 6px' }}>PRO</span>
               )}
             </button>
           );
@@ -104,24 +104,24 @@ export default function Drawer({ open, finca, displayName, role, onClose, onNavi
       </div>
 
       {/* Account */}
-      <div style={{ margin: '12px 12px 0', background: '#fff', border: '1px solid #E1E8DD', borderRadius: 8, overflow: 'hidden' }}>
-        <div style={{ padding: '10px 14px', borderBottom: '1px solid #E1E8DD' }}>
-          <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 10, color: '#9DB39D', textTransform: 'uppercase', letterSpacing: '.5px' }}>Cuenta</div>
+      <div style={{ margin: '12px 12px 0', background: '#fff', border: '1px solid #B9C6B4', borderRadius: 8, overflow: 'hidden' }}>
+        <div style={{ padding: '10px 14px', borderBottom: '1px solid #B9C6B4' }}>
+          <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 14, color: '#4A5E4A', textTransform: 'uppercase', letterSpacing: '.5px' }}>Cuenta</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px' }}>
-          <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#DCFCE7', border: '1.5px solid #15A34A', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, color: '#15A34A', flexShrink: 0 }}>{ini}</div>
+          <div style={{ width: 34, height: 34, borderRadius: '50%', background: '#DCFCE7', border: '1.5px solid #15803D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 17, color: '#15803D', flexShrink: 0 }}>{ini}</div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
-            <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 10.5, color: '#6E8A6E', marginTop: 1 }}>{ROLE_LABEL[role]}</div>
+            <div style={{ fontSize: 17, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayName}</div>
+            <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 14, color: '#3A4D3A', marginTop: 1 }}>{ROLE_LABEL[role]}</div>
           </div>
         </div>
         <button onClick={onSignOut} style={{
           display: 'flex', alignItems: 'center', gap: 10, width: '100%',
           padding: '11px 14px', background: 'transparent',
-          border: 'none', borderTop: '1px solid #EDF1EA', cursor: 'pointer', textAlign: 'left', color: '#DC2626',
+          border: 'none', borderTop: '1px solid #EDF1EA', cursor: 'pointer', textAlign: 'left', color: '#B91C1C',
         }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
-          <span style={{ fontSize: 13.5, fontWeight: 600 }}>Cerrar sesión</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B91C1C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+          <span style={{ fontSize: 17, fontWeight: 600 }}>Cerrar sesión</span>
         </button>
       </div>
     </>
@@ -132,7 +132,7 @@ export default function Drawer({ open, finca, displayName, role, onClose, onNavi
       <div className="ag-sidebar" style={{
         display: 'none', flexDirection: 'column',
         position: 'fixed', top: 0, left: 0, bottom: 0, width: 240,
-        background: '#fff', borderRight: '1px solid #E1E8DD',
+        background: '#fff', borderRight: '1px solid #B9C6B4',
         overflowY: 'auto', zIndex: 20,
       }}>
         {body}

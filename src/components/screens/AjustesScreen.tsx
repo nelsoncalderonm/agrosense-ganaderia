@@ -23,16 +23,16 @@ const ROLE_OPTIONS: { value: RoleKey; label: string }[] = [
 ];
 
 const inp: React.CSSProperties = {
-  width: '100%', height: 42, border: '1px solid #C5D2C0', borderRadius: 4,
-  padding: '0 12px', fontSize: 14, background: '#fff', outline: 'none',
-  fontFamily: 'inherit', color: '#1A2B1A', boxSizing: 'border-box',
+  width: '100%', height: 42, border: '1px solid #8FA38A', borderRadius: 4,
+  padding: '0 12px', fontSize: 18, background: '#fff', outline: 'none',
+  fontFamily: 'inherit', color: '#0F1A0F', boxSizing: 'border-box',
 };
 const lbl: React.CSSProperties = {
-  fontSize: 10, color: '#6E8A6E', fontWeight: 700, letterSpacing: '.5px',
+  fontSize: 14, color: '#3A4D3A', fontWeight: 700, letterSpacing: '.5px',
   marginBottom: 4, display: 'block',
 };
 const card: React.CSSProperties = {
-  background: '#fff', border: '1px solid #E1E8DD', borderRadius: 6, padding: 16,
+  background: '#fff', border: '1px solid #B9C6B4', borderRadius: 6, padding: 16,
 };
 
 function FincaForm({ finca, onGuardado }: { finca: DbFinca; onGuardado: () => void }) {
@@ -58,7 +58,7 @@ function FincaForm({ finca, onGuardado }: { finca: DbFinca; onGuardado: () => vo
 
   return (
     <div style={card}>
-      <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 14 }}>Finca</div>
+      <div style={{ fontWeight: 800, fontSize: 19, marginBottom: 14 }}>Finca</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div><label style={lbl}>NOMBRE</label>
           <input style={inp} value={nombre} onChange={e => setNombre(e.target.value)} />
@@ -71,9 +71,9 @@ function FincaForm({ finca, onGuardado }: { finca: DbFinca; onGuardado: () => vo
             <input style={inp} type="number" min={0} value={hectareas} onChange={e => setHectareas(e.target.value)} />
           </div>
         </div>
-        {err && <div style={{ fontSize: 12, color: '#DC2626', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{err}</div>}
-        {ok && <div style={{ fontSize: 12, color: '#15A34A', background: '#DCFCE7', padding: '6px 10px', borderRadius: 4 }}>Guardado</div>}
-        <button onClick={handleGuardar} disabled={saving} style={{ height: 44, border: 'none', borderRadius: 4, background: saving ? '#6E8A6E' : '#15A34A', color: '#fff', fontWeight: 800, fontSize: 13, cursor: saving ? 'default' : 'pointer' }}>
+        {err && <div style={{ fontSize: 16, color: '#B91C1C', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{err}</div>}
+        {ok && <div style={{ fontSize: 16, color: '#15803D', background: '#DCFCE7', padding: '6px 10px', borderRadius: 4 }}>Guardado</div>}
+        <button onClick={handleGuardar} disabled={saving} style={{ height: 44, border: 'none', borderRadius: 4, background: saving ? '#3A4D3A' : '#15803D', color: '#fff', fontWeight: 800, fontSize: 17, cursor: saving ? 'default' : 'pointer' }}>
           {saving ? 'Guardando…' : 'Guardar cambios'}
         </button>
       </div>
@@ -106,19 +106,19 @@ function MiembroRow({ m, esUnoMismo, onActualizado }: { m: DbMembresia; esUnoMis
   return (
     <div style={{ padding: '11px 14px', borderTop: '1px solid #EDF1EA' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <span style={{ fontSize: 13.5, fontWeight: 600 }}>{m.nombre}{esUnoMismo ? ' (tú)' : ''}</span>
+        <span style={{ fontSize: 17, fontWeight: 600 }}>{m.nombre}{esUnoMismo ? ' (tú)' : ''}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <select value={rol} onChange={e => handleRolChange(e.target.value as RoleKey)} disabled={saving} style={{ height: 32, border: '1px solid #C5D2C0', borderRadius: 4, fontSize: 12, background: '#fff', color: '#1A2B1A', padding: '0 6px' }}>
+          <select value={rol} onChange={e => handleRolChange(e.target.value as RoleKey)} disabled={saving} style={{ height: 32, border: '1px solid #8FA38A', borderRadius: 4, fontSize: 16, background: '#fff', color: '#0F1A0F', padding: '0 6px' }}>
             {ROLE_OPTIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
           </select>
           {!esUnoMismo && (
-            <button onClick={handleEliminar} disabled={saving} style={{ height: 32, padding: '0 10px', border: '1px solid #FCA5A5', borderRadius: 4, background: '#FEE2E2', color: '#DC2626', fontWeight: 700, fontSize: 11.5, cursor: saving ? 'default' : 'pointer' }}>
+            <button onClick={handleEliminar} disabled={saving} style={{ height: 32, padding: '0 10px', border: '1px solid #FCA5A5', borderRadius: 4, background: '#FEE2E2', color: '#B91C1C', fontWeight: 700, fontSize: 15, cursor: saving ? 'default' : 'pointer' }}>
               Quitar
             </button>
           )}
         </div>
       </div>
-      {err && <div style={{ fontSize: 11.5, color: '#DC2626', marginTop: 6 }}>{err}</div>}
+      {err && <div style={{ fontSize: 15, color: '#B91C1C', marginTop: 6 }}>{err}</div>}
     </div>
   );
 }
@@ -158,20 +158,20 @@ function CuentaForm({ displayName, miMembresiaId, onNombreActualizado }: { displ
 
   return (
     <div style={card}>
-      <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 14 }}>Cuenta</div>
+      <div style={{ fontWeight: 800, fontSize: 19, marginBottom: 14 }}>Cuenta</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
         <div><label style={lbl}>NOMBRE MOSTRADO</label>
           <input style={inp} value={nombre} onChange={e => setNombre(e.target.value)} disabled={!miMembresiaId} />
         </div>
-        {errNombre && <div style={{ fontSize: 12, color: '#DC2626', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{errNombre}</div>}
-        {okNombre && <div style={{ fontSize: 12, color: '#15A34A', background: '#DCFCE7', padding: '6px 10px', borderRadius: 4 }}>Guardado</div>}
-        <button onClick={handleNombre} disabled={savingNombre || !miMembresiaId} style={{ height: 42, border: 'none', borderRadius: 4, background: savingNombre ? '#6E8A6E' : '#15A34A', color: '#fff', fontWeight: 800, fontSize: 13, cursor: savingNombre ? 'default' : 'pointer' }}>
+        {errNombre && <div style={{ fontSize: 16, color: '#B91C1C', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{errNombre}</div>}
+        {okNombre && <div style={{ fontSize: 16, color: '#15803D', background: '#DCFCE7', padding: '6px 10px', borderRadius: 4 }}>Guardado</div>}
+        <button onClick={handleNombre} disabled={savingNombre || !miMembresiaId} style={{ height: 42, border: 'none', borderRadius: 4, background: savingNombre ? '#3A4D3A' : '#15803D', color: '#fff', fontWeight: 800, fontSize: 17, cursor: savingNombre ? 'default' : 'pointer' }}>
           {savingNombre ? 'Guardando…' : 'Guardar nombre'}
         </button>
       </div>
 
-      <div style={{ borderTop: '1px solid #E1E8DD', paddingTop: 16 }}>
-        <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 10 }}>Cambiar contraseña</div>
+      <div style={{ borderTop: '1px solid #B9C6B4', paddingTop: 16 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 10 }}>Cambiar contraseña</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div><label style={lbl}>NUEVA CONTRASEÑA</label>
             <input style={inp} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mínimo 8 caracteres" />
@@ -179,9 +179,9 @@ function CuentaForm({ displayName, miMembresiaId, onNombreActualizado }: { displ
           <div><label style={lbl}>CONFIRMAR</label>
             <input style={inp} type="password" value={confirmar} onChange={e => setConfirmar(e.target.value)} />
           </div>
-          {errPass && <div style={{ fontSize: 12, color: '#DC2626', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{errPass}</div>}
-          {okPass && <div style={{ fontSize: 12, color: '#15A34A', background: '#DCFCE7', padding: '6px 10px', borderRadius: 4 }}>Contraseña actualizada</div>}
-          <button onClick={handlePassword} disabled={savingPass} style={{ height: 42, border: 'none', borderRadius: 4, background: savingPass ? '#6E8A6E' : '#1A2B1A', color: '#fff', fontWeight: 800, fontSize: 13, cursor: savingPass ? 'default' : 'pointer' }}>
+          {errPass && <div style={{ fontSize: 16, color: '#B91C1C', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{errPass}</div>}
+          {okPass && <div style={{ fontSize: 16, color: '#15803D', background: '#DCFCE7', padding: '6px 10px', borderRadius: 4 }}>Contraseña actualizada</div>}
+          <button onClick={handlePassword} disabled={savingPass} style={{ height: 42, border: 'none', borderRadius: 4, background: savingPass ? '#3A4D3A' : '#0F1A0F', color: '#fff', fontWeight: 800, fontSize: 17, cursor: savingPass ? 'default' : 'pointer' }}>
             {savingPass ? 'Guardando…' : 'Cambiar contraseña'}
           </button>
         </div>
@@ -197,9 +197,9 @@ export default function AjustesScreen({ onOpenDrawer, finca, role, miembros, miM
     <div style={{ paddingBottom: 90 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 16px 0' }}>
         <button onClick={onOpenDrawer} className="ag-hamburger" style={{ width: 40, height: 40, marginLeft: -7, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, background: 'none', border: 'none' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A2B1A" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0F1A0F" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
-        <div style={{ fontWeight: 800, fontSize: 22 }}>Ajustes</div>
+        <div style={{ fontWeight: 800, fontSize: 25 }}>Ajustes</div>
       </div>
 
       <div className="ag-list-grid" style={{ padding: '16px 16px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -211,9 +211,9 @@ export default function AjustesScreen({ onOpenDrawer, finca, role, miembros, miM
 
         {isOwner && (
           <div style={card}>
-            <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 14 }}>Miembros de esta finca</div>
-            <div style={{ border: '1px solid #E1E8DD', borderRadius: 6, overflow: 'hidden', margin: '0 -1px' }}>
-              {miembros.length === 0 && <div style={{ padding: 14, fontSize: 12, color: '#9DB39D' }}>Sin miembros</div>}
+            <div style={{ fontWeight: 800, fontSize: 19, marginBottom: 14 }}>Miembros de esta finca</div>
+            <div style={{ border: '1px solid #B9C6B4', borderRadius: 6, overflow: 'hidden', margin: '0 -1px' }}>
+              {miembros.length === 0 && <div style={{ padding: 14, fontSize: 16, color: '#4A5E4A' }}>Sin miembros</div>}
               {miembros.map((m, i) => (
                 <div key={m.id} style={{ borderTop: i === 0 ? 'none' : undefined }}>
                   <MiembroRow m={m} esUnoMismo={m.id === miMembresiaId} onActualizado={onMiembrosActualizados} />
@@ -224,8 +224,8 @@ export default function AjustesScreen({ onOpenDrawer, finca, role, miembros, miM
         )}
 
         {!isOwner && (
-          <div style={{ ...card, textAlign: 'center', color: '#9DB39D' }}>
-            <div style={{ fontSize: 12.5, fontFamily: 'var(--font-jetbrains)' }}>Solo el propietario puede editar la finca y gestionar miembros.</div>
+          <div style={{ ...card, textAlign: 'center', color: '#4A5E4A' }}>
+            <div style={{ fontSize: 16, fontFamily: 'var(--font-jetbrains)' }}>Solo el propietario puede editar la finca y gestionar miembros.</div>
           </div>
         )}
       </div>

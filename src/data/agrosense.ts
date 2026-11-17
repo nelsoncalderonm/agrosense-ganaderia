@@ -4,16 +4,16 @@ export type Tab = 'inicio' | 'animales' | 'rfid' | 'agenda' | 'finanzas' | 'admi
 export type CatKey = 'Levante' | 'Ceba' | 'Cría';
 
 export const ESTADO: Record<EstadoKey, { hex: string; soft: string }> = {
-  green: { hex: '#15A34A', soft: '#DCFCE7' },
-  amber: { hex: '#D97706', soft: '#FEF3C7' },
-  red:   { hex: '#DC2626', soft: '#FEE2E2' },
-  blue:  { hex: '#2563EB', soft: '#DBEAFE' },
+  green: { hex: '#15803D', soft: '#DCFCE7' },
+  amber: { hex: '#B45309', soft: '#FEF3C7' },
+  red:   { hex: '#B91C1C', soft: '#FEE2E2' },
+  blue:  { hex: '#1D4ED8', soft: '#DBEAFE' },
 };
 
 export const CAT: Record<CatKey, { hex: string; soft: string }> = {
-  Levante: { hex: '#2563EB', soft: '#DBEAFE' },
-  Ceba:    { hex: '#15A34A', soft: '#DCFCE7' },
-  Cría:    { hex: '#D97706', soft: '#FEF3C7' },
+  Levante: { hex: '#1D4ED8', soft: '#DBEAFE' },
+  Ceba:    { hex: '#15803D', soft: '#DCFCE7' },
+  Cría:    { hex: '#B45309', soft: '#FEF3C7' },
 };
 
 export interface Animal {
@@ -117,17 +117,17 @@ export const RFID_RECENT = [
 ];
 
 export const AGENDA_EVENTS = [
-  { fecha: 19, mes: 'jun', tipo: 'Vacunación', titulo: 'Vacuna aftosa – Lote Ceba', sub: '96 animales · El Guayabo y La Ceiba', hex: '#15A34A', soft: '#DCFCE7', dias: 'Hoy' },
-  { fecha: 22, mes: 'jun', tipo: 'Pesaje', titulo: 'Pesaje programado – Levante', sub: '78 animales · La Palma', hex: '#2563EB', soft: '#DBEAFE', dias: '3 días' },
-  { fecha: 25, mes: 'jun', tipo: 'Sanidad', titulo: 'Desparasitación preventiva', sub: 'Todos los terneros · La Palma', hex: '#D97706', soft: '#FEF3C7', dias: '6 días' },
-  { fecha: 28, mes: 'jun', tipo: 'Pesaje', titulo: 'Pesaje Cría – La Ceiba', sub: '74 animales · peso al destete', hex: '#2563EB', soft: '#DBEAFE', dias: '9 días' },
-  { fecha: 5,  mes: 'jul', tipo: 'Rotación', titulo: 'Rotación de potreros', sub: 'El Guayabo → La Palma', hex: '#15A34A', soft: '#DCFCE7', dias: '16 días' },
+  { fecha: 19, mes: 'jun', tipo: 'Vacunación', titulo: 'Vacuna aftosa – Lote Ceba', sub: '96 animales · El Guayabo y La Ceiba', hex: '#15803D', soft: '#DCFCE7', dias: 'Hoy' },
+  { fecha: 22, mes: 'jun', tipo: 'Pesaje', titulo: 'Pesaje programado – Levante', sub: '78 animales · La Palma', hex: '#1D4ED8', soft: '#DBEAFE', dias: '3 días' },
+  { fecha: 25, mes: 'jun', tipo: 'Sanidad', titulo: 'Desparasitación preventiva', sub: 'Todos los terneros · La Palma', hex: '#B45309', soft: '#FEF3C7', dias: '6 días' },
+  { fecha: 28, mes: 'jun', tipo: 'Pesaje', titulo: 'Pesaje Cría – La Ceiba', sub: '74 animales · peso al destete', hex: '#1D4ED8', soft: '#DBEAFE', dias: '9 días' },
+  { fecha: 5,  mes: 'jul', tipo: 'Rotación', titulo: 'Rotación de potreros', sub: 'El Guayabo → La Palma', hex: '#15803D', soft: '#DCFCE7', dias: '16 días' },
 ];
 
 export const ALERTAS = [
-  { title: 'Vacuna aftosa próxima', sub: 'Perla · ·690 · vence en 5 días', hex: '#D97706', soft: '#FEF3C7', meta: '5 días' },
-  { title: 'GDP bajo · revisar', sub: 'Manchas · ·012 · 0.42 kg/d', hex: '#DC2626', soft: '#FEE2E2', meta: 'Crítico' },
-  { title: 'Período de retiro activo', sub: 'Canela · ·744 · 19 días restantes', hex: '#DC2626', soft: '#FEE2E2', meta: '19 días' },
+  { title: 'Vacuna aftosa próxima', sub: 'Perla · ·690 · vence en 5 días', hex: '#B45309', soft: '#FEF3C7', meta: '5 días' },
+  { title: 'GDP bajo · revisar', sub: 'Manchas · ·012 · 0.42 kg/d', hex: '#B91C1C', soft: '#FEE2E2', meta: 'Crítico' },
+  { title: 'Período de retiro activo', sub: 'Canela · ·744 · 19 días restantes', hex: '#B91C1C', soft: '#FEE2E2', meta: '19 días' },
 ];
 
 export const WEIGHT_DATA = {
@@ -141,9 +141,9 @@ export function money(n: number): string {
 }
 
 export function gHexFor(g: number): string {
-  if (g <= 0) return '#DC2626';
-  if (g < 0.5) return '#D97706';
-  return '#15A34A';
+  if (g <= 0) return '#B91C1C';
+  if (g < 0.5) return '#B45309';
+  return '#15803D';
 }
 
 export function gdpTxt(g: number): string {

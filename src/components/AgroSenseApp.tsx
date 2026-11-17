@@ -210,8 +210,8 @@ export default function AgroSenseApp() {
   const Spinner = (msg: string) => (
     <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#EEF2EC' }}>
       <div style={{ textAlign:'center' }}>
-        <div style={{ width:48, height:48, borderRadius:'50%', border:'3px solid #15A34A', borderTopColor:'transparent', animation:'agSweep 0.8s linear infinite', margin:'0 auto' }}/>
-        <div style={{ fontFamily:'var(--font-jetbrains)', fontSize:12, color:'#6E8A6E', marginTop:14, letterSpacing:'.5px' }}>{msg}</div>
+        <div style={{ width:48, height:48, borderRadius:'50%', border:'3px solid #15803D', borderTopColor:'transparent', animation:'agSweep 0.8s linear infinite', margin:'0 auto' }}/>
+        <div style={{ fontFamily:'var(--font-jetbrains)', fontSize:16, color:'#3A4D3A', marginTop:14, letterSpacing:'.5px' }}>{msg}</div>
       </div>
     </div>
   );
@@ -225,8 +225,8 @@ export default function AgroSenseApp() {
     return (
       <div style={{ minHeight:'100vh', background:'#EEF2EC' }}>
         <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'12px 16px 0' }}>
-          <button onClick={() => window.location.reload()} style={{ height:36, padding:'0 14px', border:'1px solid #C5D2C0', borderRadius:4, background:'#fff', color:'#3A5A3A', fontWeight:700, fontSize:12, cursor:'pointer' }}>Entrar a la app</button>
-          <button onClick={handleSignOut} style={{ height:36, padding:'0 14px', border:'1px solid #C5D2C0', borderRadius:4, background:'#fff', color:'#3A5A3A', fontWeight:700, fontSize:12, cursor:'pointer' }}>Cerrar sesión</button>
+          <button onClick={() => window.location.reload()} style={{ height:36, padding:'0 14px', border:'1px solid #8FA38A', borderRadius:4, background:'#fff', color:'#3A5A3A', fontWeight:700, fontSize:16, cursor:'pointer' }}>Entrar a la app</button>
+          <button onClick={handleSignOut} style={{ height:36, padding:'0 14px', border:'1px solid #8FA38A', borderRadius:4, background:'#fff', color:'#3A5A3A', fontWeight:700, fontSize:16, cursor:'pointer' }}>Cerrar sesión</button>
         </div>
         <AdminScreen onOpenDrawer={() => {}} />
       </div>
@@ -237,9 +237,9 @@ export default function AgroSenseApp() {
     return (
       <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#EEF2EC', padding:20 }}>
         <div style={{ textAlign:'center', maxWidth:340 }}>
-          <div style={{ fontWeight:800, fontSize:17, marginBottom:8 }}>Sin fincas asignadas</div>
-          <div style={{ fontFamily:'var(--font-jetbrains)', fontSize:12.5, color:'#6E8A6E', marginBottom:18 }}>Tu cuenta ({session.user.email}) no tiene acceso a ninguna finca todavía. Pide a un administrador que te agregue.</div>
-          <button onClick={handleSignOut} style={{ height:44, padding:'0 20px', border:'1px solid #C5D2C0', borderRadius:4, background:'#fff', color:'#3A5A3A', fontWeight:700, fontSize:13, cursor:'pointer' }}>Cerrar sesión</button>
+          <div style={{ fontWeight:800, fontSize:20, marginBottom:8 }}>Sin fincas asignadas</div>
+          <div style={{ fontFamily:'var(--font-jetbrains)', fontSize:16, color:'#3A4D3A', marginBottom:18 }}>Tu cuenta ({session.user.email}) no tiene acceso a ninguna finca todavía. Pide a un administrador que te agregue.</div>
+          <button onClick={handleSignOut} style={{ height:44, padding:'0 20px', border:'1px solid #8FA38A', borderRadius:4, background:'#fff', color:'#3A5A3A', fontWeight:700, fontSize:17, cursor:'pointer' }}>Cerrar sesión</button>
         </div>
       </div>
     );
@@ -351,14 +351,13 @@ export default function AgroSenseApp() {
       </div>
 
       {/* Tab bar — fixed at bottom (mobile only; desktop uses the sidebar) */}
-      <div className="ag-tabbar-mobile" style={{ position:'fixed', bottom:0, left:0, right:0, background:'rgba(238,242,236,.95)', backdropFilter:'blur(12px)', borderTop:'1px solid #E1E8DD', padding:'8px 8px 12px', display:'flex', zIndex:30 }}>
+      <div className="ag-tabbar-mobile" style={{ position:'fixed', bottom:0, left:0, right:0, background:'#fff', borderTop:'2px solid #8FA38A', padding:'6px 4px 10px', display:'flex', zIndex:30 }}>
         {TABS.map(t => {
           const active = tab === t.key;
           return (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3, background:'none', border:'none', cursor:'pointer', color: active ? '#15A34A' : '#9DB39D', padding:'6px 2px' }}>
+            <button key={t.key} onClick={() => setTab(t.key)} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3, background:'none', border:'none', cursor:'pointer', color: active ? '#15803D' : '#3A4D3A', padding:'6px 2px', minHeight:60, borderRadius:8, ...(active ? { background:'#DCFCE7' } : {}) }}>
               {t.icon}
-              <span style={{ fontFamily:'var(--font-jetbrains)', fontSize:10, fontWeight: active ? 700 : 500, letterSpacing:'.3px' }}>{t.label}</span>
-              {active && <span style={{ width:4, height:4, borderRadius:'50%', background:'#15A34A', display:'block', marginTop:-2 }}/>}
+              <span style={{ fontSize:14, fontWeight: active ? 800 : 600 }}>{t.label}</span>
             </button>
           );
         })}

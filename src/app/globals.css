@@ -2,12 +2,48 @@
 
 :root {
   --font-sans: var(--font-montserrat);
-  --font-mono: var(--font-jetbrains);
+  --font-mono: var(--font-montserrat);
+  /* La app usaba JetBrains Mono para cifras y etiquetas. Bajo el sol y en
+     pantallas pequeñas se lee mejor Montserrat, así que el alias apunta a
+     Montserrat con números tabulares (las cifras siguen alineadas). */
+  --font-jetbrains: var(--font-montserrat);
+}
+
+/* ── Uso en campo: letra grande, alto contraste, botones grandes ── */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   font-family: var(--font-montserrat), system-ui, sans-serif;
-  background: #c2cfbe;
+  font-weight: 500;
+  color: #0F1A0F;
+  background: #EEF2EC;
+  font-variant-numeric: tabular-nums;
+  -webkit-tap-highlight-color: rgba(21, 128, 61, .25);
+}
+
+/* Botones y campos con área de toque cómoda (mín. 44px, guía de Android/iOS). */
+button, [role="button"], a { touch-action: manipulation; }
+button { min-height: 44px; min-width: 44px; }
+input, select, textarea {
+  min-height: 48px;
+  font-size: 17px; /* ≥16px evita el zoom automático del teclado */
+  font-weight: 600;
+  color: #0F1A0F;
+}
+input::placeholder, textarea::placeholder { color: #4A5E4A; opacity: 1; font-weight: 500; }
+
+/* Íconos de la barra inferior más grandes. */
+.ag-tabbar-mobile svg { width: 26px; height: 26px; }
+
+/* Foco visible y grueso para quien navega con teclado o lector RFID tipo teclado. */
+:focus-visible { outline: 3px solid #0F1A0F; outline-offset: 2px; }
+
+/* Celulares básicos o con "reducir movimiento": sin animaciones decorativas. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
 
 @keyframes agBlink {
@@ -50,7 +86,7 @@ body {
 .animate-pop { animation: agPop 0.4s ease-out; }
 .animate-slide-up { animation: slideUp 0.3s ease-out; }
 
-.font-mono { font-family: var(--font-jetbrains), monospace; }
+.font-mono { font-family: var(--font-montserrat), system-ui, sans-serif; font-variant-numeric: tabular-nums; }
 .font-sans { font-family: var(--font-montserrat), system-ui, sans-serif; }
 
 /* Hide scrollbars */
