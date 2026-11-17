@@ -18,6 +18,8 @@ export type ReporteFinca = {
   mano_de_obra: Trabajador[];
 };
 
+const GDP_BAJA = 0.4; // kg/día, igual que gdp_bajo_umbral en agrosense.reporte_finca
+
 const ROLES: Record<string, string> = { owner: 'Propietario', admin: 'Administrador', contable: 'Contable', vaquero: 'Vaquero' };
 
 const n0 = (v: number | null | undefined) => (v ?? 0).toLocaleString('es-CO', { maximumFractionDigits: 0 });
@@ -52,13 +54,17 @@ export function formatearReporte(r: ReporteFinca, titulo = 'Reporte semanal', cl
       out.push('', '<i>Mejores GDP</i>');
       p.mejores.forEach(x => out.push(`  ${animal(x)}: ${kgDia(x.gdp)}`));
     }
+    // Los que no están engordando: menos de 400 g/día o bajando de peso. Es plata que se pierde callada.
     const mejoresIds = new Set(p.mejores.map(x => x.arete));
-    const peores = p.peores.filter(x => !mejoresIds.has(x.arete));
-    if (peores.length) {
-      out.push('', '<i>Revisar (GDP más bajo)</i>');
-      peores.forEach(x => out.push(`  ${animal(x)}: ${kgDia(x.gdp)}`));
+    const flojos = p.peores.filter(x => !mejoresIds.has(x.arete) && x.gdp < GDP_BAJA);
+    if (flojos.length) {
+      out.push('', `<b>🚨 No están engordando (${p.gdp_bajo_umbral})</b>`);
+      out.push('Revíselos: parásitos, cojera o potrero.');
+      flojos.forEach(x => out.push(`  ${animal(x)}: ${x.gdp < 0 ? `bajó ${n0(-x.gdp * 1000)} g/día ⚠️` : `gana ${n0(x.gdp * 1000)} g/día`}`));
+      if (p.gdp_bajo_umbral > flojos.length) out.push(`  …y ${p.gdp_bajo_umbral - flojos.length} más. Véalos en la app.`);
+    } else if (p.pesajes > 0) {
+      out.push('', '✅ Todos los animales pesados están engordando bien.');
     }
-    if (p.gdp_bajo_umbral > 0) out.push(`⚠️ ${p.gdp_bajo_umbral} animal(es) por debajo de 400 g/día`);
   }
 
   // Hato
