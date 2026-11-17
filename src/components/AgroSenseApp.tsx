@@ -220,6 +220,19 @@ export default function AgroSenseApp() {
   if (!session) return <LoginScreen />;
   if (loading) return Spinner('Cargando datos...');
 
+  // Superadmin sin fincas propias: entra directo a Administración para crear clientes y fincas.
+  if (!fincas.length && isSuperadmin) {
+    return (
+      <div style={{ minHeight:'100vh', background:'#EEF2EC' }}>
+        <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'12px 16px 0' }}>
+          <button onClick={() => window.location.reload()} style={{ height:36, padding:'0 14px', border:'1px solid #C5D2C0', borderRadius:4, background:'#fff', color:'#3A5A3A', fontWeight:700, fontSize:12, cursor:'pointer' }}>Entrar a la app</button>
+          <button onClick={handleSignOut} style={{ height:36, padding:'0 14px', border:'1px solid #C5D2C0', borderRadius:4, background:'#fff', color:'#3A5A3A', fontWeight:700, fontSize:12, cursor:'pointer' }}>Cerrar sesión</button>
+        </div>
+        <AdminScreen onOpenDrawer={() => {}} />
+      </div>
+    );
+  }
+
   if (!fincas.length) {
     return (
       <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#EEF2EC', padding:20 }}>
