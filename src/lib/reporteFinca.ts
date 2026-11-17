@@ -32,7 +32,7 @@ function flecha(actual: number | null, anterior: number | null): string {
   return ` (${pct > 0 ? '▲' : '▼'} ${Math.abs(pct).toFixed(0)}% vs. semana anterior)`;
 }
 
-export function formatearReporte(r: ReporteFinca, titulo = 'Reporte semanal'): string {
+export function formatearReporte(r: ReporteFinca, titulo = 'Reporte semanal', clima: string[] = []): string {
   const p = r.produccion, h = r.hato, a = r.agenda;
   const out: string[] = [];
 
@@ -74,6 +74,9 @@ export function formatearReporte(r: ReporteFinca, titulo = 'Reporte semanal'): s
   if (h.ventas) mov.push(`${h.ventas} venta(s), ${n0(h.kg_vendidos)} kg`);
   if (h.bajas) mov.push(`${h.bajas} baja(s) ⚠️`);
   out.push(`• Movimientos: ${mov.length ? mov.join(', ') : 'ninguno'}`);
+
+  // Clima (si la finca tiene coordenadas)
+  out.push(...clima);
 
   // Mano de obra
   out.push('', '<b>👷 Mano de obra</b>');

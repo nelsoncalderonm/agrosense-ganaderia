@@ -3,6 +3,7 @@ import { cronAutorizado } from '@/lib/cronAuth';
 import { enviarDocumento, enviarMensaje, semanaAnterior, telegramConfigurado } from '@/lib/telegram';
 import { generarPdfReporte, nombreArchivoReporte } from '@/lib/reportePdf';
 import { formatearReporte, type ReporteFinca } from '@/lib/reporteFinca';
+import { lineasClima } from '@/lib/climaReporte';
 
 export const maxDuration = 300;
 
@@ -31,7 +32,7 @@ export async function GET(request: Request) {
       const { data, error: rErr } = await admin.rpc('reporte_finca', { p_finca_id: v.finca_id, p_desde: desde, p_hasta: hasta });
       if (rErr || !data) { fallos++; continue; }
       const r = data as ReporteFinca;
-      rep = { texto: formatearReporte(r), pdf: generarPdfReporte(r), nombre: nombreArchivoReporte(r) };
+      rep = { texto: formatearReporte(r, undefined, await lineasClima(admin, v.finca_id, desde, hasta)), pdf: generarPdfReporte(r), nombre: nombreArchivoReporte(r) };
       cache.set(v.finca_id, rep);
     }
     const res = await enviarMensaje(v.chat_id, rep.texto);

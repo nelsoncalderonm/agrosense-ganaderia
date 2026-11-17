@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { enviarDocumento, enviarMensaje, esc, hoyBogota, sumarDias, webhookSecret, type TgUpdate } from '@/lib/telegram';
 import { formatearReporte, type ReporteFinca } from '@/lib/reporteFinca';
+import { lineasClima } from '@/lib/climaReporte';
 import { generarPdfReporte, nombreArchivoReporte } from '@/lib/reportePdf';
 
 type Vinculo = {
@@ -86,7 +87,7 @@ async function manejar(chatId: number, texto: string, username: string | null) {
       const { data, error } = await admin.rpc('reporte_finca', { p_finca_id: v.finca_id, p_desde: desde, p_hasta: hasta });
       if (error) throw error;
       const r = data as ReporteFinca;
-      await enviarMensaje(chatId, formatearReporte(r, 'Últimos 7 días'));
+      await enviarMensaje(chatId, formatearReporte(r, 'Últimos 7 días', await lineasClima(admin, v.finca_id, desde, hasta)));
       await enviarDocumento(chatId, generarPdfReporte(r, 'Últimos 7 días'), nombreArchivoReporte(r), '📄 Reporte en PDF');
     }
     return;
