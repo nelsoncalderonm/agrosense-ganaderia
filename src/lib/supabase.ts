@@ -18,6 +18,7 @@ export type DbFinca = {
   id: string; nombre: string; ubicacion: string | null;
   hectareas: number | null; valor_cop: number | null; activa: boolean;
   organizacion_id: string | null;
+  latitud?: number | null; longitud?: number | null;
 };
 
 export type DbOrganizacion = {
@@ -155,7 +156,7 @@ export async function crearFinca(payload: { nombre: string; ubicacion: string | 
   return { error: error?.message ?? null, id: data?.id ?? null };
 }
 
-export async function actualizarFinca(finca_id: string, payload: { nombre: string; ubicacion: string | null; hectareas: number | null }): Promise<{ error: string | null }> {
+export async function actualizarFinca(finca_id: string, payload: { nombre?: string; ubicacion?: string | null; hectareas?: number | null; latitud?: number | null; longitud?: number | null }): Promise<{ error: string | null }> {
   const { error } = await supabase.from('fincas').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', finca_id);
   return { error: error?.message ?? null };
 }
@@ -381,4 +382,58 @@ export async function registrarPesaje(payload: {
     p_fecha: payload.fecha ?? new Date().toISOString(), p_sesion_id: payload.sesion_id ?? null,
   });
   return { data: (data as DbPesaje | null) ?? null, error: error?.message ?? null };
+}
+
+// ---------- Potreros y análisis de suelo ----------
+
+export async function crearPotrero(payload: { finca_id: string; nombre: string; hectareas: number | null }): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('potreros').insert(payload);
+  return { error: error?.message ?? null };
+}
+
+export async function actualizarPotrero(id: string, payload: { nombre?: string; hectareas?: number | null }): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('potreros').update(payload).eq('id', id);
+  return { error: error?.message ?? null };
+}
+
+export type DbAnalisisSuelo = {
+  id: string; finca_id: string; potrero_id: string;
+  fecha: string; laboratorio: string | null;
+  ph: number | null; materia_organica: number | null; nitrogeno: number | null;
+  fosforo: number | null; potasio: number | null;
+  calcio: number | null; magnesio: number | null; aluminio: number | null;
+  textura: string | null; notas: string | null; pdf_path: string | null;
+  created_at: string;
+};
+
+export async function getAnalisisSuelo(finca_id: string): Promise<DbAnalisisSuelo[]> {
+  const { data } = await supabase.from('analisis_suelo').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false });
+  return (data ?? []) as DbAnalisisSuelo[];
+}
+
+export async function crearAnalisisSuelo(
+  payload: Omit<DbAnalisisSuelo, 'id' | 'pdf_path' | 'created_at'>,
+  pdfFile: File | null,
+): Promise<{ error: string | null }> {
+  let pdf_path: string | null = null;
+  if (pdfFile) {
+    const limpio = pdfFile.name.replace(/[^\w.\-]+/g, '_');
+    const path = `${payload.finca_id}/suelos/${Date.now()}-${limpio}`;
+    const { error: uploadErr } = await supabase.storage.from('agrosense-ica').upload(path, pdfFile, { contentType: 'application/pdf' });
+    if (uploadErr) return { error: uploadErr.message };
+    pdf_path = path;
+  }
+  const { error } = await supabase.from('analisis_suelo').insert({ ...payload, pdf_path });
+  return { error: error?.message ?? null };
+}
+
+export async function eliminarAnalisisSuelo(id: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('analisis_suelo').delete().eq('id', id);
+  return { error: error?.message ?? null };
+}
+
+export async function getSueloPdfUrl(pdf_path: string): Promise<string | null> {
+  const { data, error } = await supabase.storage.from('agrosense-ica').createSignedUrl(pdf_path, 60 * 10);
+  if (error) return null;
+  return data.signedUrl;
 }

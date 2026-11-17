@@ -19,6 +19,9 @@ import FinanzasScreen from './screens/FinanzasScreen';
 import AdminScreen from './screens/AdminScreen';
 import ReportesScreen from './screens/ReportesScreen';
 import AjustesScreen from './screens/AjustesScreen';
+import PotrerosScreen from './screens/PotrerosScreen';
+import ClimaScreen from './screens/ClimaScreen';
+import ClimaMini from './ui/ClimaMini';
 import Drawer from './ui/Drawer';
 import AnimalProfile from './ui/AnimalProfile';
 import FincaPicker from './ui/FincaPicker';
@@ -182,6 +185,12 @@ export default function AgroSenseApp() {
     });
   }, [session, loadFincaData]);
 
+  // Vuelve a leer las fincas (p. ej. tras guardar la ubicación) sin cambiar la finca elegida.
+  const recargarFincas = useCallback(async () => {
+    const f = await getFincas();
+    setFincas(prev => prev.map(x => f.find(y => y.id === x.id) ?? x));
+  }, []);
+
   const handleSignOut = () => { supabase.auth.signOut(); };
 
   const handleSelectFinca = async (idx: number) => {
@@ -257,7 +266,7 @@ export default function AgroSenseApp() {
         activeTab={tab}
         showAdmin={isSuperadmin}
         onClose={() => {}}
-        onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin','reportes','ajustes'].includes(key)) setTab(key as Tab); }}
+        onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin','reportes','ajustes','potreros','clima'].includes(key)) setTab(key as Tab); }}
         onSignOut={handleSignOut}
         onOpenFincaPicker={fincas.length > 1 ? () => setFincaPickerOpen(true) : undefined}
       />
@@ -274,7 +283,8 @@ export default function AgroSenseApp() {
             onOpenDrawer={() => setDrawerOpen(true)}
             onOpenFincaPicker={() => setFincaPickerOpen(true)}
             onGoAnimales={() => setTab('animales')}
-            onGoPotreros={() => setDrawerOpen(true)}
+            onGoPotreros={() => setTab('potreros')}
+            climaCard={currentFinca ? <ClimaMini finca={currentFinca} onAbrir={() => setTab('clima')} /> : undefined}
             wPeriod={wPeriod}
             setWPeriod={setWPeriod}
             alertas={alertas}
@@ -335,6 +345,23 @@ export default function AgroSenseApp() {
             movimientos={movimientos}
           />
         )}
+        {tab === 'potreros' && (
+          <PotrerosScreen
+            fincaId={currentFinca?.id}
+            potreros={potreros}
+            animalesPorPotrero={animales.reduce<Record<string, number>>((m, a) => { if (a.potrero_id) m[a.potrero_id] = (m[a.potrero_id] ?? 0) + 1; return m; }, {})}
+            onOpenDrawer={() => setDrawerOpen(true)}
+            onPotrerosCambiados={() => currentFinca && loadFincaData(currentFinca.id)}
+          />
+        )}
+        {tab === 'clima' && (
+          <ClimaScreen
+            finca={currentFinca}
+            puedeEditar={currentRole === 'owner'}
+            onOpenDrawer={() => setDrawerOpen(true)}
+            onFincaActualizada={recargarFincas}
+          />
+        )}
         {tab === 'ajustes' && (
           <AjustesScreen
             onOpenDrawer={() => setDrawerOpen(true)}
@@ -343,7 +370,7 @@ export default function AgroSenseApp() {
             miembros={miembrosFinca}
             miMembresiaId={myMembresia?.id}
             displayName={displayName}
-            onFincaActualizada={() => currentFinca && loadFincaData(currentFinca.id)}
+            onFincaActualizada={recargarFincas}
             onMiembrosActualizados={() => currentFinca && loadFincaData(currentFinca.id)}
           />
         )}
@@ -373,7 +400,7 @@ export default function AgroSenseApp() {
             role={currentRole}
             showAdmin={isSuperadmin}
             onClose={() => setDrawerOpen(false)}
-            onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin','reportes','ajustes'].includes(key)) setTab(key as Tab); }}
+            onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin','reportes','ajustes','potreros','clima'].includes(key)) setTab(key as Tab); }}
             onSignOut={handleSignOut}
           />
         </div>
