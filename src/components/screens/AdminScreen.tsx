@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { RoleKey } from '@/data/agrosense';
-import { supabase, getFincas, getMembresiasFinca, crearFinca, DbFinca, DbMembresia, getOrganizaciones, crearOrganizacion, DbOrganizacion } from '@/lib/supabase';
+import { supabase, getFincas, getMembresiasFinca, crearFinca, DbFinca, DbMembresia, getOrganizaciones, DbOrganizacion, getPlanes, crearClienteConInvitacion, DbPlan } from '@/lib/supabase';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -35,61 +35,77 @@ const lbl: React.CSSProperties = {
   marginBottom: 4, display: 'block',
 };
 
-function CrearOrganizacionForm({ onCreada }: { onCreada: () => void }) {
+function NuevoClienteForm({ onCreado }: { onCreado: () => void }) {
+  const [organizacion, setOrganizacion] = useState('');
   const [nombre, setNombre] = useState('');
+  const [email, setEmail] = useState('');
+  const [telefono, setTelefono] = useState('');
   const [nit, setNit] = useState('');
-  const [contactoNombre, setContactoNombre] = useState('');
-  const [contactoEmail, setContactoEmail] = useState('');
-  const [contactoTelefono, setContactoTelefono] = useState('');
+  const [planId, setPlanId] = useState('');
+  const [planes, setPlanes] = useState<DbPlan[]>([]);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [ok, setOk] = useState<string | null>(null);
+
+  useEffect(() => { getPlanes().then(setPlanes); }, []);
 
   const handleCrear = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nombre.trim()) return;
-    setSaving(true); setErr(null);
-    const { error } = await crearOrganizacion({
-      nombre: nombre.trim(),
-      nit: nit.trim() || null,
-      contacto_nombre: contactoNombre.trim() || null,
-      contacto_email: contactoEmail.trim() || null,
-      contacto_telefono: contactoTelefono.trim() || null,
+    if (!organizacion.trim() || !nombre.trim() || !email.trim()) return;
+    setSaving(true); setErr(null); setOk(null);
+    const { data, error } = await crearClienteConInvitacion({
+      organizacion: organizacion.trim(), nombre: nombre.trim(), email: email.trim(),
+      telefono: telefono.trim() || undefined, nit: nit.trim() || undefined, plan_id: planId || undefined,
     });
     setSaving(false);
     if (error) { setErr(error); return; }
-    setNombre(''); setNit(''); setContactoNombre(''); setContactoEmail(''); setContactoTelefono('');
-    onCreada();
+    setOk(data?.invitado
+      ? `Invitación enviada a ${email.trim()}. Al entrar verá el asistente para configurar su finca.`
+      : `${email.trim()} ya tenía cuenta: verá el asistente la próxima vez que entre.`);
+    setOrganizacion(''); setNombre(''); setEmail(''); setTelefono(''); setNit(''); setPlanId('');
+    onCreado();
   };
 
   return (
     <form onSubmit={handleCrear} style={{ background: '#fff', border: '1px solid #B9C6B4', borderRadius: 6, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ fontSize: 16, color: '#3A4D3A', lineHeight: 1.45 }}>
+        Para ventas por fuera de Hotmart. El dueño recibe un correo, crea su contraseña y el asistente lo guía para registrar su finca, potreros, animales y equipo.
+      </div>
       <div>
-        <label style={lbl}>NOMBRE DEL CLIENTE</label>
-        <input style={inp} value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Ganadería El Roble S.A.S." />
+        <label style={lbl}>GANADERÍA O EMPRESA</label>
+        <input style={inp} value={organizacion} onChange={e => setOrganizacion(e.target.value)} placeholder="Ej: Ganadería El Roble S.A.S." />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div>
+          <label style={lbl}>NOMBRE DEL DUEÑO</label>
+          <input style={inp} value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre y apellido" />
+        </div>
+        <div>
+          <label style={lbl}>CORREO DEL DUEÑO</label>
+          <input style={inp} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="correo@ejemplo.com" />
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div>
+          <label style={lbl}>TELÉFONO</label>
+          <input style={inp} value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="300 000 0000" />
+        </div>
         <div>
           <label style={lbl}>NIT</label>
           <input style={inp} value={nit} onChange={e => setNit(e.target.value)} placeholder="900.123.456-7" />
         </div>
-        <div>
-          <label style={lbl}>CONTACTO</label>
-          <input style={inp} value={contactoNombre} onChange={e => setContactoNombre(e.target.value)} placeholder="Nombre del contacto" />
-        </div>
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-        <div>
-          <label style={lbl}>CORREO</label>
-          <input style={inp} type="email" value={contactoEmail} onChange={e => setContactoEmail(e.target.value)} placeholder="correo@ejemplo.com" />
-        </div>
-        <div>
-          <label style={lbl}>TELÉFONO</label>
-          <input style={inp} value={contactoTelefono} onChange={e => setContactoTelefono(e.target.value)} placeholder="300 000 0000" />
-        </div>
+      <div>
+        <label style={lbl}>PLAN</label>
+        <select style={inp} value={planId} onChange={e => setPlanId(e.target.value)}>
+          <option value="">Sin plan (sin límite de fincas)</option>
+          {planes.map(p => <option key={p.id} value={p.id}>{p.nombre}{p.max_fincas ? ` · hasta ${p.max_fincas} fincas` : ''}</option>)}
+        </select>
       </div>
       {err && <div style={{ fontSize: 16, color: '#B91C1C', background: '#FEE2E2', padding: '8px 10px', borderRadius: 4 }}>{err}</div>}
+      {ok && <div style={{ fontSize: 16, color: '#15803D', background: '#DCFCE7', padding: '8px 10px', borderRadius: 4 }}>{ok}</div>}
       <button type="submit" disabled={saving} style={{ height: 46, border: 'none', borderRadius: 4, background: saving ? '#3A4D3A' : '#15803D', color: '#fff', fontWeight: 800, fontSize: 17, cursor: saving ? 'default' : 'pointer' }}>
-        {saving ? 'Creando…' : 'Crear cliente'}
+        {saving ? 'Enviando…' : 'Crear cliente y enviar invitación'}
       </button>
     </form>
   );
@@ -208,8 +224,8 @@ export default function AdminScreen({ onOpenDrawer }: Props) {
 
       <div className="ag-dash-grid" style={{ padding: '16px 16px 24px' }}>
         <div className="ag-dash-left">
-          <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 10 }}>Crear cliente</div>
-          <CrearOrganizacionForm onCreada={reloadOrganizaciones} />
+          <div style={{ fontWeight: 700, fontSize: 18, marginBottom: 10 }}>Nuevo cliente</div>
+          <NuevoClienteForm onCreado={reloadOrganizaciones} />
 
           <div style={{ fontWeight: 700, fontSize: 18, margin: '22px 0 10px' }}>Crear finca</div>
           <CrearFincaForm organizaciones={organizaciones} onCreada={reloadFincas} />
