@@ -19,6 +19,7 @@ export type DbFinca = {
   hectareas: number | null; valor_cop: number | null; activa: boolean;
   organizacion_id: string | null;
   latitud?: number | null; longitud?: number | null;
+  lindero?: [number, number][] | null;
 };
 
 export type DbOrganizacion = {
@@ -31,6 +32,7 @@ export type DbPotrero = {
   id: string; finca_id: string; nombre: string; capacidad: number;
   hectareas: number | null; aforo: number | null;
   estado: string; dias_estado: number;
+  poligono?: [number, number][] | null;
 };
 
 export type DbAnimal = {
@@ -156,7 +158,7 @@ export async function crearFinca(payload: { nombre: string; ubicacion: string | 
   return { error: error?.message ?? null, id: data?.id ?? null };
 }
 
-export async function actualizarFinca(finca_id: string, payload: { nombre?: string; ubicacion?: string | null; hectareas?: number | null; latitud?: number | null; longitud?: number | null }): Promise<{ error: string | null }> {
+export async function actualizarFinca(finca_id: string, payload: { nombre?: string; ubicacion?: string | null; hectareas?: number | null; latitud?: number | null; longitud?: number | null; lindero?: [number, number][] | null }): Promise<{ error: string | null }> {
   const { error } = await supabase.from('fincas').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', finca_id);
   return { error: error?.message ?? null };
 }
@@ -386,12 +388,12 @@ export async function registrarPesaje(payload: {
 
 // ---------- Potreros y análisis de suelo ----------
 
-export async function crearPotrero(payload: { finca_id: string; nombre: string; hectareas: number | null }): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('potreros').insert(payload);
-  return { error: error?.message ?? null };
+export async function crearPotrero(payload: { finca_id: string; nombre: string; hectareas: number | null; poligono?: [number, number][] | null }): Promise<{ error: string | null; id: string | null }> {
+  const { data, error } = await supabase.from('potreros').insert(payload).select('id').single();
+  return { error: error?.message ?? null, id: data?.id ?? null };
 }
 
-export async function actualizarPotrero(id: string, payload: { nombre?: string; hectareas?: number | null }): Promise<{ error: string | null }> {
+export async function actualizarPotrero(id: string, payload: { nombre?: string; hectareas?: number | null; poligono?: [number, number][] | null }): Promise<{ error: string | null }> {
   const { error } = await supabase.from('potreros').update(payload).eq('id', id);
   return { error: error?.message ?? null };
 }
@@ -436,4 +438,27 @@ export async function getSueloPdfUrl(pdf_path: string): Promise<string | null> {
   const { data, error } = await supabase.storage.from('agrosense-ica').createSignedUrl(pdf_path, 60 * 10);
   if (error) return null;
   return data.signedUrl;
+}
+
+// ---------- Puntos del mapa (corral, báscula, casa, bebedero) ----------
+
+export type TipoPunto = 'corral' | 'bascula' | 'casa' | 'bebedero' | 'otro';
+export type DbPuntoFinca = {
+  id: string; finca_id: string; tipo: TipoPunto; nombre: string | null;
+  latitud: number; longitud: number; created_at: string;
+};
+
+export async function getPuntosFinca(finca_id: string): Promise<DbPuntoFinca[]> {
+  const { data } = await supabase.from('puntos_finca').select('*').eq('finca_id', finca_id).order('created_at');
+  return (data ?? []) as DbPuntoFinca[];
+}
+
+export async function crearPuntoFinca(payload: Omit<DbPuntoFinca, 'id' | 'created_at'>): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('puntos_finca').insert(payload);
+  return { error: error?.message ?? null };
+}
+
+export async function eliminarPuntoFinca(id: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('puntos_finca').delete().eq('id', id);
+  return { error: error?.message ?? null };
 }

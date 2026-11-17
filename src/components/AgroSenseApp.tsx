@@ -347,7 +347,9 @@ export default function AgroSenseApp() {
         )}
         {tab === 'potreros' && (
           <PotrerosScreen
-            fincaId={currentFinca?.id}
+            finca={currentFinca}
+            esPropietario={currentRole === 'owner'}
+            onFincaCambiada={recargarFincas}
             potreros={potreros}
             animalesPorPotrero={animales.reduce<Record<string, number>>((m, a) => { if (a.potrero_id) m[a.potrero_id] = (m[a.potrero_id] ?? 0) + 1; return m; }, {})}
             onOpenDrawer={() => setDrawerOpen(true)}

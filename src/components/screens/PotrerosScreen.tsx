@@ -6,7 +6,13 @@ import {
   type DbPotrero, type DbAnalisisSuelo,
 } from '@/lib/supabase';
 import { PARAMETROS, TEXTURAS, COLOR_NIVEL, type Parametro } from '@/lib/suelo';
+import dynamic from 'next/dynamic';
+import type { DbFinca } from '@/lib/supabase';
 import EncabezadoPantalla from '../ui/EncabezadoPantalla';
+import UbicacionFinca from '../ui/UbicacionFinca';
+
+// Leaflet usa window: el mapa se carga solo en el navegador y solo al abrir la pestaña.
+const MapaFinca = dynamic(() => import('../ui/MapaFinca'), { ssr: false, loading: () => <div style={{ ...card, fontSize: 18, fontWeight: 700, textAlign: 'center' }}>Cargando mapa…</div> });
 import { C, inp, lbl, card, btnPrincipal, btnSecundario, aviso } from '../ui/estilosCampo';
 
 const fechaLarga = (s: string) => new Date(`${s}T12:00:00`).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -182,10 +188,12 @@ function ResumenSuelo({ a }: { a?: DbAnalisisSuelo }) {
 
 /* ───────────── Pantalla ───────────── */
 
-export default function PotrerosScreen({ fincaId, potreros, animalesPorPotrero, onOpenDrawer, onPotrerosCambiados }: {
-  fincaId?: string; potreros: DbPotrero[]; animalesPorPotrero: Record<string, number>;
-  onOpenDrawer: () => void; onPotrerosCambiados: () => void;
+export default function PotrerosScreen({ finca, potreros, animalesPorPotrero, esPropietario, onOpenDrawer, onPotrerosCambiados, onFincaCambiada }: {
+  finca?: DbFinca; potreros: DbPotrero[]; animalesPorPotrero: Record<string, number>; esPropietario: boolean;
+  onOpenDrawer: () => void; onPotrerosCambiados: () => void; onFincaCambiada: () => void;
 }) {
+  const fincaId = finca?.id;
+  const [vista, setVista] = useState<'lista' | 'mapa'>('lista');
   const [analisis, setAnalisis] = useState<DbAnalisisSuelo[]>([]);
   const [selId, setSelId] = useState<string | null>(null);
   const [nuevoAnalisis, setNuevoAnalisis] = useState(false);
@@ -252,6 +260,22 @@ export default function PotrerosScreen({ fincaId, potreros, animalesPorPotrero, 
   return (
     <div style={{ paddingBottom: 90 }}>
       <EncabezadoPantalla titulo="Potreros" onOpenDrawer={onOpenDrawer} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', margin: '14px 16px 0', border: `2px solid ${C.texto}`, borderRadius: 6, overflow: 'hidden' }}>
+        {(['lista', 'mapa'] as const).map(v => (
+          <button key={v} onClick={() => setVista(v)} style={{ height: 48, border: 'none', fontSize: 18, fontWeight: 800, cursor: 'pointer', background: vista === v ? C.texto : '#fff', color: vista === v ? '#fff' : C.texto }}>
+            {v === 'lista' ? 'Lista' : '🛰️ Mapa'}
+          </button>
+        ))}
+      </div>
+      {vista === 'mapa' ? (
+        <div style={{ padding: '14px 16px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {!finca ? null : finca.latitud == null || finca.longitud == null ? (
+            <UbicacionFinca key={finca.id} finca={finca} puedeEditar={esPropietario} onGuardado={onFincaCambiada} />
+          ) : (
+            <MapaFinca key={finca.id} finca={finca} potreros={potreros} esPropietario={esPropietario} onFincaCambiada={onFincaCambiada} onPotrerosCambiados={onPotrerosCambiados} />
+          )}
+        </div>
+      ) : (
       <div className="ag-list-grid" style={{ padding: '16px 16px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         {nuevoPotrero ? (
           <div style={{ ...card, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -285,6 +309,7 @@ export default function PotrerosScreen({ fincaId, potreros, animalesPorPotrero, 
           </button>
         ))}
       </div>
+      )}
     </div>
   );
 }

@@ -57,3 +57,26 @@ grant execute on function agrosense.analisis_suelo_finca() to authenticated, ser
 
 -- Los PDF del laboratorio van al bucket privado existente 'agrosense-ica',
 -- en la ruta <finca_id>/suelos/<archivo>.pdf (mismas políticas por finca).
+
+-- 3) Mapa de la finca: lindero, dibujo de cada potrero y puntos (corral, báscula…).
+-- Las figuras se guardan como lista de vértices [[lat, lon], ...].
+alter table agrosense.fincas
+  add column if not exists lindero jsonb check (lindero is null or jsonb_typeof(lindero) = 'array');
+alter table agrosense.potreros
+  add column if not exists poligono jsonb check (poligono is null or jsonb_typeof(poligono) = 'array');
+
+create table if not exists agrosense.puntos_finca (
+  id uuid primary key default gen_random_uuid(),
+  finca_id uuid not null references agrosense.fincas(id) on delete cascade,
+  tipo text not null check (tipo in ('corral','bascula','casa','bebedero','otro')),
+  nombre text,
+  latitud  numeric(9,6) not null check (latitud  between -90  and 90),
+  longitud numeric(9,6) not null check (longitud between -180 and 180),
+  created_at timestamptz not null default now()
+);
+create index if not exists puntos_finca_finca_idx on agrosense.puntos_finca (finca_id);
+alter table agrosense.puntos_finca enable row level security;
+drop policy if exists puntos_finca_miembros on agrosense.puntos_finca;
+create policy puntos_finca_miembros on agrosense.puntos_finca for all to authenticated
+  using (agrosense.tiene_acceso(finca_id)) with check (agrosense.tiene_acceso(finca_id));
+grant select, insert, update, delete on agrosense.puntos_finca to authenticated, service_role;
