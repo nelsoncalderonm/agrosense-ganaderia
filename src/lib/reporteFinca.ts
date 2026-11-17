@@ -36,7 +36,8 @@ export function formatearReporte(r: ReporteFinca, titulo = 'Reporte semanal'): s
   const p = r.produccion, h = r.hato, a = r.agenda;
   const out: string[] = [];
 
-  out.push(`🐂 <b>${esc(titulo)} · ${esc(r.finca.nombre)}</b>`);
+  out.push(`🐂 <b>Ganado al Día · ${esc(titulo)}</b>`);
+  out.push(`<b>${esc(r.finca.nombre)}</b>`);
   out.push(`${fechaCorta(r.desde)} al ${fechaCorta(r.hasta)}`);
 
   // Producción

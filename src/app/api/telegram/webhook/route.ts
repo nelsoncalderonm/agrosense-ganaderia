@@ -37,7 +37,7 @@ async function manejar(chatId: number, texto: string, username: string | null) {
 
   if (cmd === '/start') {
     if (!args[0]) {
-      await enviarMensaje(chatId, 'Hola 👋 Para conectar este chat, abra AgroSense → Ajustes → <b>Conectar Telegram</b>.');
+      await enviarMensaje(chatId, 'Hola 👋 Para conectar este chat, abra Ganado al Día → Ajustes → <b>Conectar Telegram</b>.');
       return;
     }
     const { data: c } = await admin.from('telegram_codigos')
@@ -45,7 +45,7 @@ async function manejar(chatId: number, texto: string, username: string | null) {
       .eq('codigo', args[0]).maybeSingle();
     const m = c?.membresias as unknown as { id: string; finca_id: string; auth_user_id: string; nombre: string; rol: string; fincas: { nombre: string } | null } | null;
     if (!c || !m || c.usado_at || new Date(c.expira_at) < new Date()) {
-      await enviarMensaje(chatId, 'Este enlace ya se usó o venció. Genere uno nuevo en AgroSense → Ajustes → Conectar Telegram.');
+      await enviarMensaje(chatId, 'Este enlace ya se usó o venció. Genere uno nuevo en Ganado al Día → Ajustes → Conectar Telegram.');
       return;
     }
     const recibe = m.rol === 'owner' || m.rol === 'admin';

@@ -8,7 +8,7 @@
 Todo el cálculo está en la función SQL `agrosense.reporte_finca(finca, desde, hasta)`; `src/lib/reporteFinca.ts` solo le da formato.
 
 ## Configuración (una sola vez)
-1. En Telegram, hablarle a **@BotFather** → `/newbot` → nombre (ej. *AgroSense*) y usuario (ej. `AgroSenseFincaBot`). Copiar el token.
+1. En Telegram, hablarle a **@BotFather** → `/newbot` → nombre (ej. *Ganado al Día*) y usuario (ej. `GanadoAlDiaBot`). Copiar el token.
 2. En Vercel → Settings → Environment Variables (Production):
    - `TELEGRAM_BOT_TOKEN` = el token
    - `CRON_SECRET` = una cadena aleatoria larga (Vercel la usa para firmar los crons)
