@@ -451,4 +451,42 @@ export function invitarMiembro(payload: { finca_id: string; email: string; nombr
 /** Superadmin: alta de un cliente vendido por fuera de Hotmart. */
 export function crearClienteConInvitacion(payload: { organizacion: string; nombre: string; email: string; telefono?: string; nit?: string; plan_id?: string }) {
   return postConSesion('/api/admin/nuevo-cliente', payload);
+// ---------- Telegram ----------
+
+export type DbTelegramVinculo = {
+  id: string; membresia_id: string; finca_id: string; chat_id: number;
+  telegram_username: string | null; recibir_reportes: boolean; activo: boolean;
+};
+
+export async function getMiVinculoTelegram(membresia_id: string): Promise<DbTelegramVinculo | null> {
+  const { data } = await supabase.from('telegram_vinculos').select('*').eq('membresia_id', membresia_id).maybeSingle();
+  return (data ?? null) as DbTelegramVinculo | null;
+}
+
+export async function generarLinkTelegram(finca_id: string, membresia_id?: string): Promise<{ url: string | null; error: string | null }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { url: null, error: 'Sesión vencida, vuelva a ingresar' };
+  const res = await fetch('/api/telegram/vincular', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({ finca_id, membresia_id }),
+  });
+  const body = await res.json().catch(() => ({})) as { url?: string; error?: string };
+  return { url: body.url ?? null, error: res.ok ? null : (body.error ?? 'No se pudo generar el enlace') };
+}
+
+export async function actualizarVinculoTelegram(id: string, payload: { recibir_reportes?: boolean; activo?: boolean }): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('telegram_vinculos').update(payload).eq('id', id);
+  return { error: error?.message ?? null };
+}
+
+export async function desconectarTelegram(id: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('telegram_vinculos').delete().eq('id', id);
+  return { error: error?.message ?? null };
+}
+
+// Membresías de la finca que ya tienen Telegram conectado (owner/admin las pueden ver por RLS).
+export async function getConectadosTelegram(finca_id: string): Promise<Set<string>> {
+  const { data } = await supabase.from('telegram_vinculos').select('membresia_id').eq('finca_id', finca_id).eq('activo', true);
+  return new Set((data ?? []).map(r => r.membresia_id as string));
 }
