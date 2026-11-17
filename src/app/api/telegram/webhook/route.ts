@@ -68,7 +68,7 @@ async function manejar(chatId: number, texto: string, username: string | null) {
     .eq('chat_id', chatId).eq('activo', true).order('created_at', { ascending: false });
   const vinculos = (vincs ?? []) as unknown as Vinculo[];
   if (!vinculos.length) {
-    await enviarMensaje(chatId, 'Este chat no está conectado. Abra AgroSense → Ajustes → <b>Conectar Telegram</b>.');
+    await enviarMensaje(chatId, 'Este chat no está conectado. Abra Ganado al Día → Ajustes → <b>Conectar Telegram</b>.');
     return;
   }
   const esDueno = (v: Vinculo) => v.membresias?.rol === 'owner' || v.membresias?.rol === 'admin';
