@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { money } from '@/data/agrosense';
-import { DbProveedor, DbCliente, DbGasto, DbMovimiento, crearProveedor, desactivarProveedor, crearGasto, crearCliente, desactivarCliente, crearMovimiento } from '@/lib/supabase';
+import { crearGastoOffline } from '@/lib/offline/acciones';
+import { DbProveedor, DbCliente, DbGasto, DbMovimiento, crearProveedor, desactivarProveedor, crearCliente, desactivarCliente, crearMovimiento } from '@/lib/supabase';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -113,7 +114,7 @@ function CrearGastoForm({ fincaId, proveedores, onCancelar, onCreado }: { fincaI
   const handleGuardar = async () => {
     if (!concepto.trim() || !monto) { setErr('Concepto y monto requeridos'); return; }
     setSaving(true); setErr(null);
-    const { error } = await crearGasto({
+    const { error } = await crearGastoOffline({
       finca_id: fincaId, proveedor_id: proveedorId || null, concepto: concepto.trim(),
       items_desc: itemsDesc.trim() || null, monto: parseFloat(monto), fecha, via,
     });

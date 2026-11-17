@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { Animal, CAT, ESTADO, gHexFor, gdpTxt } from '@/data/agrosense';
 import AreteIcon from '@/components/ui/AreteIcon';
-import { registrarBaja, registrarVenta, trasladarAnimal, getAnimalEventos, DbAnimalEvento, DbFinca } from '@/lib/supabase';
+import { getAnimalEventos, DbAnimalEvento, DbFinca } from '@/lib/supabase';
+import { registrarBajaOffline, registrarVentaOffline, trasladarAnimalOffline, registrarEventoSanitarioOffline, TIPOS_SANITARIOS, type TipoSanitario } from '@/lib/offline/acciones';
 
 interface Props {
   animal: Animal;
@@ -48,7 +49,7 @@ function BajaForm({ animal, fincaId, onCancelar, onRegistrada }: {
   const handleGuardar = async () => {
     setSaving(true); setErr(null);
     const causa = detalle.trim() ? `${causaCat}: ${detalle.trim()}` : causaCat;
-    const { error } = await registrarBaja({ finca_id: fincaId, animal_id: animal.dbId, fecha, causa });
+    const { error } = await registrarBajaOffline({ finca_id: fincaId, animal: { dbId: animal.dbId, nombre: animal.nombre, arete: animal.arete }, fecha, causa });
     setSaving(false);
     if (error) { setErr(error); return; }
     onRegistrada();
@@ -97,8 +98,8 @@ function VentaForm({ animal, fincaId, onCancelar, onRegistrada }: {
   const handleGuardar = async () => {
     if (!pesoKg) { setErr('Peso de salida requerido'); return; }
     setSaving(true); setErr(null);
-    const { error } = await registrarVenta({
-      animal_id: animal.dbId, finca_id: fincaId, fecha,
+    const { error } = await registrarVentaOffline({
+      animal: { dbId: animal.dbId, nombre: animal.nombre, arete: animal.arete }, finca_id: fincaId, fecha,
       peso_kg: parseFloat(pesoKg), comprador: comprador.trim() || null, notas: notas.trim() || null,
     });
     setSaving(false);
@@ -150,8 +151,9 @@ function TrasladoForm({ animal, fincaId, fincas, onCancelar, onRegistrada }: {
   const handleGuardar = async () => {
     if (!fincaDestinoId) { setErr('Selecciona la finca destino'); return; }
     setSaving(true); setErr(null);
-    const { error } = await trasladarAnimal({
-      animal_id: animal.dbId, finca_origen_id: fincaId, finca_destino_id: fincaDestinoId,
+    const { error } = await trasladarAnimalOffline({
+      animal: { dbId: animal.dbId, nombre: animal.nombre, arete: animal.arete }, finca_id: fincaId,
+      finca_destino_id: fincaDestinoId, finca_destino_nombre: destinos.find(f => f.id === fincaDestinoId)?.nombre ?? '',
       fecha, notas: notas.trim() || null,
     });
     setSaving(false);
@@ -179,6 +181,65 @@ function TrasladoForm({ animal, fincaId, fincas, onCancelar, onRegistrada }: {
           <button onClick={onCancelar} style={{ flex: 1, height: 46, border: '1px solid #8FA38A', borderRadius: 4, background: '#fff', color: '#3A4D3A', fontWeight: 700, fontSize: 17, cursor: 'pointer' }}>Cancelar</button>
           <button onClick={handleGuardar} disabled={saving} style={{ flex: 1.6, height: 46, border: 'none', borderRadius: 4, background: saving ? '#3A4D3A' : '#7C3AED', color: '#fff', fontWeight: 800, fontSize: 17, cursor: saving ? 'default' : 'pointer' }}>
             {saving ? 'Guardando…' : 'Confirmar traslado'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SanidadForm({ animal, fincaId, onCancelar, onRegistrada }: {
+  animal: Animal; fincaId: string; onCancelar: () => void; onRegistrada: () => void;
+}) {
+  const [tipo, setTipo] = useState<TipoSanitario>('vacuna');
+  const [producto, setProducto] = useState('');
+  const [dosis, setDosis] = useState('');
+  const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
+  const [notas, setNotas] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const handleGuardar = async () => {
+    setSaving(true); setErr(null);
+    const { error } = await registrarEventoSanitarioOffline({
+      finca_id: fincaId, animal: { dbId: animal.dbId, nombre: animal.nombre, arete: animal.arete },
+      tipo, producto: producto.trim() || null, dosis: dosis.trim() || null, fecha, notas: notas.trim() || null,
+    });
+    setSaving(false);
+    if (error) { setErr(error); return; }
+    onRegistrada();
+  };
+
+  return (
+    <div className="animate-up" style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 6, padding: '16px 14px' }}>
+      <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 12, color: '#2563EB' }}>Sanidad · {animal.nombre}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div><label style={lbl}>TIPO</label>
+            <select style={inp} value={tipo} onChange={e => setTipo(e.target.value as TipoSanitario)}>
+              {TIPOS_SANITARIOS.map(t => <option key={t.key} value={t.key}>{t.label}</option>)}
+            </select>
+          </div>
+          <div><label style={lbl}>FECHA</label>
+            <input style={inp} type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 10 }}>
+          <div><label style={lbl}>PRODUCTO</label>
+            <input style={inp} value={producto} onChange={e => setProducto(e.target.value)} placeholder="Ej: Ivermectina" />
+          </div>
+          <div><label style={lbl}>DOSIS</label>
+            <input style={inp} value={dosis} onChange={e => setDosis(e.target.value)} placeholder="Ej: 10 ml" />
+          </div>
+        </div>
+        <div><label style={lbl}>NOTAS (OPCIONAL)</label>
+          <input style={inp} value={notas} onChange={e => setNotas(e.target.value)} placeholder="Observaciones" />
+        </div>
+        {err && <div style={{ fontSize: 12, color: '#DC2626', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{err}</div>}
+        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+          <button onClick={onCancelar} style={{ flex: 1, height: 46, border: '1px solid #C5D2C0', borderRadius: 4, background: '#fff', color: '#6E8A6E', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+          <button onClick={handleGuardar} disabled={saving} style={{ flex: 1.6, height: 46, border: 'none', borderRadius: 4, background: saving ? '#6E8A6E' : '#2563EB', color: '#fff', fontWeight: 800, fontSize: 13, cursor: saving ? 'default' : 'pointer' }}>
+            {saving ? 'Guardando…' : 'Guardar'}
           </button>
         </div>
       </div>
@@ -250,6 +311,7 @@ export default function AnimalProfile({ animal, fincaId, fincas = [], onClose, o
   const [showBaja, setShowBaja] = useState(false);
   const [showVenta, setShowVenta] = useState(false);
   const [showTraslado, setShowTraslado] = useState(false);
+  const [showSanidad, setShowSanidad] = useState(false);
   const [eventos, setEventos] = useState<DbAnimalEvento[]>([]);
   const [loadingEventos, setLoadingEventos] = useState(true);
 
@@ -257,7 +319,7 @@ export default function AnimalProfile({ animal, fincaId, fincas = [], onClose, o
     getAnimalEventos(animal.dbId).then(ev => { setEventos(ev); setLoadingEventos(false); });
   }, [animal.dbId]);
 
-  const showingForm = showBaja || showVenta || showTraslado;
+  const showingForm = showBaja || showVenta || showTraslado || showSanidad;
 
   return (
     <>
@@ -343,6 +405,13 @@ export default function AnimalProfile({ animal, fincaId, fincas = [], onClose, o
               onRegistrada={() => { setShowVenta(false); onVentaRegistrada?.(); onClose(); }}
             />
           )}
+          {showSanidad && fincaId && (
+            <SanidadForm
+              animal={animal} fincaId={fincaId}
+              onCancelar={() => setShowSanidad(false)}
+              onRegistrada={() => setShowSanidad(false)}
+            />
+          )}
           {showTraslado && fincaId && (
             <TrasladoForm
               animal={animal} fincaId={fincaId} fincas={fincas}
@@ -362,6 +431,9 @@ export default function AnimalProfile({ animal, fincaId, fincas = [], onClose, o
               </div>
               {fincaId && (
                 <div style={{ display: 'flex', gap: 8, marginTop: 9 }}>
+                  <button onClick={() => setShowSanidad(true)} style={{ flex: 1, height: 44, border: '1px solid #BFDBFE', borderRadius: 4, background: '#EFF6FF', color: '#2563EB', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>
+                    Sanidad
+                  </button>
                   {fincas.length > 1 && (
                     <button onClick={() => setShowTraslado(true)} style={{ flex: 1, height: 44, border: '1px solid #DDD6FE', borderRadius: 4, background: '#F5F3FF', color: '#7C3AED', fontWeight: 700, fontSize: 16, cursor: 'pointer' }}>
                       Trasladar

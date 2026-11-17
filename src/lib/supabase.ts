@@ -8,8 +8,18 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 // El esquema debe estar en Settings → API → Exposed schemas.
 export const AGROSENSE_SCHEMA = 'agrosense';
 
+// Con señal débil en el campo una consulta puede quedarse colgada: la cortamos a los 20 s
+// para que la app pase a usar la copia del celular.
+const fetchConTiempo: typeof fetch = (input, init) => {
+  if (init?.signal) return fetch(input, init);
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 20000);
+  return fetch(input, { ...init, signal: ctrl.signal }).finally(() => clearTimeout(t));
+};
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   db: { schema: AGROSENSE_SCHEMA },
+  global: { fetch: fetchConTiempo },
 });
 
 // ---------- typed helpers ----------
@@ -119,7 +129,9 @@ export type DbMembresia = {
 };
 
 export async function getMisMembresias(): Promise<DbMembresia[]> {
-  const { data: { user } } = await supabase.auth.getUser();
+  // getSession lee la sesión del celular (getUser necesita internet).
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) return [];
   // Explicit filter: superadmins can SELECT every row per RLS, but this
   // helper must only ever return the caller's own memberships.
@@ -141,7 +153,8 @@ export async function getMembresiasFinca(finca_id: string): Promise<DbMembresia[
 
 export async function getFincas(): Promise<DbFinca[]> {
   // Orden custom: Hacienda La Esperanza primero (sede principal con datos completos)
-  const { data } = await supabase.from('fincas').select('*').eq('activa', true);
+  const { data, error } = await supabase.from('fincas').select('*').eq('activa', true);
+  if (error) throw error; // sin señal: quien llama usa la copia del celular
   const sorted = (data ?? []).sort((a, b) => {
     if (a.nombre === 'Hacienda La Esperanza') return -1;
     if (b.nombre === 'Hacienda La Esperanza') return 1;
@@ -186,12 +199,14 @@ export async function crearOrganizacion(payload: { nombre: string; nit: string |
 }
 
 export async function getPotreros(finca_id: string): Promise<DbPotrero[]> {
-  const { data } = await supabase.from('potreros').select('*').eq('finca_id', finca_id).order('nombre');
+  const { data, error } = await supabase.from('potreros').select('*').eq('finca_id', finca_id).order('nombre');
+  if (error) throw error;
   return data ?? [];
 }
 
 export async function getAnimales(finca_id: string): Promise<DbAnimal[]> {
-  const { data } = await supabase.from('animales').select('*').eq('finca_id', finca_id).eq('activo', true).order('nombre');
+  const { data, error } = await supabase.from('animales').select('*').eq('finca_id', finca_id).eq('activo', true).order('nombre');
+  if (error) throw error;
   return data ?? [];
 }
 

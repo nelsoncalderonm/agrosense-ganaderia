@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { Animal, RFID_RECENT, ESTADO, CAT, gHexFor, gdpTxt } from '@/data/agrosense';
 import AreteIcon from '@/components/ui/AreteIcon';
-import { registrarCompraAnimal } from '@/lib/supabase';
+import { registrarAnimalOffline } from '@/lib/offline/acciones';
 import type { DbPotrero } from '@/lib/supabase';
 import { useBluetooth } from '@/hooks/useBluetooth';
 
@@ -86,11 +86,12 @@ function CrearAnimalForm({
 
   const handleGuardar = async () => {
     setSaving(true); setErr(null);
-    const { error } = await registrarCompraAnimal({
+    const { error } = await registrarAnimalOffline({
       finca_id: fincaId, potrero_id: potreroId || null,
       nombre: '', arete, raza, sexo, categoria: cat,
       peso_kg: pesoKg ? parseFloat(pesoKg) : null,
-      origen, proveedor: origen === 'comprado' ? (proveedor.trim() || null) : null,
+      origen: origen === 'nacio' ? 'nacimiento' : 'compra',
+      contraparte: origen === 'comprado' ? (proveedor.trim() || null) : null,
       fecha: new Date().toISOString().slice(0, 10),
     });
     setSaving(false);
@@ -184,9 +185,12 @@ function CrearAnimalForm({
 
 // ── Animal card ────────────────────────────────────────────────────────────────
 function AnimalCard({ animal, onReset, onRegister }: {
-  animal: Animal; onReset: () => void; onRegister: () => void;
+  animal: Animal; onReset: () => void; onRegister: (pesoKg: number) => void;
 }) {
   const cat = CAT[animal.cat];
+  const [peso, setPeso] = useState('');
+  const pesoNum = parseFloat(peso.replace(',', '.'));
+  const pesoValido = Number.isFinite(pesoNum) && pesoNum > 0 && pesoNum < 2000;
   return (
     <div className="animate-up" style={{ width: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
@@ -202,8 +206,20 @@ function AnimalCard({ animal, onReset, onRegister }: {
 
       <div style={{ margin: '16px 0 4px' }}>
         <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 14, color: '#4A5E4A', letterSpacing: '1.5px' }}>PESO EN BÁSCULA</div>
-        <div className="animate-pop" style={{ fontFamily: 'var(--font-jetbrains)', fontWeight: 700, fontSize: 68, lineHeight: .95, letterSpacing: -2 }}>
-          {animal.peso}<span style={{ fontSize: 25, color: '#4A5E4A', fontWeight: 600 }}> kg</span>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+          <input
+            className="animate-pop"
+            type="number" inputMode="decimal" min={0} autoFocus
+            value={peso} onChange={e => setPeso(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && pesoValido) onRegister(pesoNum); }}
+            placeholder={animal.peso ? String(animal.peso) : '0'}
+            aria-label="Peso en báscula (kg)"
+            style={{ width: '100%', minWidth: 0, fontFamily: 'var(--font-jetbrains)', fontWeight: 700, fontSize: 64, lineHeight: 1, letterSpacing: -2, border: 'none', borderBottom: '2px solid #8FA38A', background: 'transparent', outline: 'none', color: '#1A2B1A', padding: 0 }}
+          />
+          <span style={{ fontSize: 25, color: '#4A5E4A', fontWeight: 600, fontFamily: 'var(--font-jetbrains)' }}>kg</span>
+        </div>
+        <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 15, color: '#4A5E4A', marginTop: 4 }}>
+          Último peso: {animal.peso ? `${animal.peso} kg` : 'sin dato'}
         </div>
       </div>
 
@@ -233,7 +249,7 @@ function AnimalCard({ animal, onReset, onRegister }: {
         <button onClick={onReset} style={{ flex: 1, height: 50, border: '1px solid #8FA38A', borderRadius: 4, background: '#fff', color: '#3A5A3A', fontWeight: 700, fontSize: 17, cursor: 'pointer' }}>
           Escanear otro
         </button>
-        <button onClick={onRegister} style={{ flex: 1.5, height: 50, border: 'none', borderRadius: 4, background: '#15803D', color: '#fff', fontWeight: 800, fontSize: 17, cursor: 'pointer', boxShadow: '0 4px 14px rgba(21,163,74,.28)' }}>
+        <button onClick={() => pesoValido && onRegister(pesoNum)} disabled={!pesoValido} style={{ flex: 1.5, height: 50, border: 'none', borderRadius: 4, background: pesoValido ? '#15803D' : '#8FA38A', color: '#fff', fontWeight: 800, fontSize: 17, cursor: pesoValido ? 'pointer' : 'default', boxShadow: pesoValido ? '0 4px 14px rgba(21,163,74,.28)' : 'none' }}>
           Registrar pesaje
         </button>
       </div>
@@ -284,10 +300,10 @@ export default function RfidScreen({ onOpenDrawer, animals, fincaId, potreros = 
 
   const handleReset = () => { setFoundAnimal(null); setNotFound(null); };
 
-  const handleRegister = () => {
+  const handleRegister = (pesoKg: number) => {
     if (!foundAnimal) return;
-    setRecent(prev => [{ id: foundAnimal.arete, peso: foundAnimal.peso, estado: foundAnimal.estado }, ...prev.slice(0, 4)]);
-    onRegistrarPesaje?.(foundAnimal, foundAnimal.peso);
+    setRecent(prev => [{ id: foundAnimal.arete, peso: pesoKg, estado: foundAnimal.estado }, ...prev.slice(0, 4)]);
+    onRegistrarPesaje?.(foundAnimal, pesoKg);
     setFoundAnimal(null);
     setNotFound(null);
   };

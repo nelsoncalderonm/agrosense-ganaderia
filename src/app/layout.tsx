@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Montserrat } from "next/font/google";
 import "./globals.css";
+import RegistrarSW from "@/components/RegistrarSW";
 
 const montserrat = Montserrat({
   subsets: ["latin"],
@@ -13,6 +14,8 @@ const montserrat = Montserrat({
 export const metadata: Metadata = {
   title: "Ganado al Día",
   description: "Control de tu ganado de ceba, fácil desde cualquier celular",
+  appleWebApp: { capable: true, title: "Ganado al Día", statusBarStyle: "default" },
+  icons: { apple: "/icono-192.png" },
 };
 
 export const viewport: Viewport = {
@@ -24,7 +27,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es" className={`${montserrat.variable} h-full`}>
-      <body className="min-h-full antialiased">{children}</body>
+      <body className="min-h-full antialiased">{children}<RegistrarSW /></body>
     </html>
   );
 }
