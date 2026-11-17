@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { RoleKey } from '@/data/agrosense';
 import { DbFinca, DbMembresia, actualizarFinca, actualizarMembresia, eliminarMembresia, cambiarPassword } from '@/lib/supabase';
+import { TelegramCard, LluviaCard } from './TelegramLluviaCards';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -204,6 +205,12 @@ export default function AjustesScreen({ onOpenDrawer, finca, role, miembros, miM
 
       <div className="ag-list-grid" style={{ padding: '16px 16px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
         <CuentaForm displayName={displayName} miMembresiaId={miMembresiaId} onNombreActualizado={onMiembrosActualizados} />
+
+        {finca && (
+          <TelegramCard fincaId={finca.id} miMembresiaId={miMembresiaId} puedeReportes={role === 'owner' || role === 'admin'} />
+        )}
+
+        {finca && <LluviaCard fincaId={finca.id} />}
 
         {isOwner && finca && (
           <FincaForm finca={finca} onGuardado={onFincaActualizada} />

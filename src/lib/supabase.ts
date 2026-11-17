@@ -382,3 +382,56 @@ export async function registrarPesaje(payload: {
   });
   return { data: (data as DbPesaje | null) ?? null, error: error?.message ?? null };
 }
+
+// ---------- Telegram y lluvia ----------
+
+export type DbTelegramVinculo = {
+  id: string; membresia_id: string; finca_id: string; chat_id: number;
+  telegram_username: string | null; recibir_reportes: boolean; activo: boolean;
+};
+
+export async function getMiVinculoTelegram(membresia_id: string): Promise<DbTelegramVinculo | null> {
+  const { data } = await supabase.from('telegram_vinculos').select('*').eq('membresia_id', membresia_id).maybeSingle();
+  return (data ?? null) as DbTelegramVinculo | null;
+}
+
+export async function generarLinkTelegram(finca_id: string): Promise<{ url: string | null; error: string | null }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { url: null, error: 'Sesión vencida, vuelva a ingresar' };
+  const res = await fetch('/api/telegram/vincular', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({ finca_id }),
+  });
+  const body = await res.json().catch(() => ({})) as { url?: string; error?: string };
+  return { url: body.url ?? null, error: res.ok ? null : (body.error ?? 'No se pudo generar el enlace') };
+}
+
+export async function actualizarVinculoTelegram(id: string, payload: { recibir_reportes?: boolean; activo?: boolean }): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('telegram_vinculos').update(payload).eq('id', id);
+  return { error: error?.message ?? null };
+}
+
+export async function desconectarTelegram(id: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('telegram_vinculos').delete().eq('id', id);
+  return { error: error?.message ?? null };
+}
+
+export type DbLluvia = { id: string; finca_id: string; fecha: string; mm: number; fuente: string; sensor_id: string | null };
+
+export async function getLluvia(finca_id: string, desde: string): Promise<DbLluvia[]> {
+  const { data } = await supabase.from('lluvia_registros').select('id, finca_id, fecha, mm, fuente, sensor_id')
+    .eq('finca_id', finca_id).gte('fecha', desde).order('fecha', { ascending: false });
+  return (data ?? []) as DbLluvia[];
+}
+
+// Un dato manual por finca y día: si ya existe, se reemplaza.
+export async function registrarLluvia(finca_id: string, fecha: string, mm: number): Promise<{ error: string | null }> {
+  const { data: prev } = await supabase.from('lluvia_registros').select('id')
+    .eq('finca_id', finca_id).eq('fecha', fecha).is('sensor_id', null).maybeSingle();
+  const fila = { finca_id, fecha, mm, fuente: 'manual' };
+  const { error } = prev
+    ? await supabase.from('lluvia_registros').update(fila).eq('id', prev.id)
+    : await supabase.from('lluvia_registros').insert(fila);
+  return { error: error?.message ?? null };
+}
