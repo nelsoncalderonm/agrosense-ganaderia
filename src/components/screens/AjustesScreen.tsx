@@ -62,24 +62,24 @@ function VentaFincaForm({ finca, onGuardado }: { finca: DbFinca; onGuardado: () 
   };
 
   return (
-    <div id="ajustes-venta" style={{ ...card, borderLeft: '4px solid #15A34A' }}>
+    <div id="ajustes-venta" style={{ ...card, borderLeft: '4px solid #15803D' }}>
       <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 4 }}>Venta al matadero</div>
-      <div style={{ fontSize: 13, color: '#6E8A6E', marginBottom: 14 }}>Con esto la app le dice cuáles animales ya están listos y cuánto vale su ganado hoy.</div>
+      <div style={{ fontSize: 17, color: '#3A4D3A', marginBottom: 14 }}>Con esto la app le dice cuáles animales ya están listos y cuánto vale su ganado hoy.</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <div><label style={{ ...lbl, fontSize: 11.5 }}>META DE PESO PARA VENDER (KG)</label>
+        <div><label style={{ ...lbl, fontSize: 15 }}>META DE PESO PARA VENDER (KG)</label>
           <input style={grande} type="number" inputMode="numeric" min={100} max={1500} value={meta} onChange={e => setMeta(e.target.value)} />
         </div>
-        <div><label style={{ ...lbl, fontSize: 11.5 }}>PRECIO DEL KILO EN PIE HOY ($)</label>
+        <div><label style={{ ...lbl, fontSize: 15 }}>PRECIO DEL KILO EN PIE HOY ($)</label>
           <input style={grande} type="number" inputMode="numeric" min={0} value={precio} onChange={e => setPrecio(e.target.value)} placeholder="Ej: 9000" />
           {finca.precio_kg_actualizado && (
-            <div style={{ fontSize: 11.5, color: '#9DB39D', marginTop: 4 }}>
+            <div style={{ fontSize: 15, color: '#4A5E4A', marginTop: 4 }}>
               Actualizado el {new Date(finca.precio_kg_actualizado).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}
             </div>
           )}
         </div>
-        {err && <div style={{ fontSize: 12.5, color: '#DC2626', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{err}</div>}
-        {ok && <div style={{ fontSize: 12.5, color: '#15A34A', background: '#DCFCE7', padding: '6px 10px', borderRadius: 4 }}>Guardado</div>}
-        <button onClick={handleGuardar} disabled={saving} style={{ height: 50, border: 'none', borderRadius: 4, background: saving ? '#6E8A6E' : '#15A34A', color: '#fff', fontWeight: 800, fontSize: 15, cursor: saving ? 'default' : 'pointer' }}>
+        {err && <div style={{ fontSize: 16, color: '#B91C1C', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{err}</div>}
+        {ok && <div style={{ fontSize: 16, color: '#15803D', background: '#DCFCE7', padding: '6px 10px', borderRadius: 4 }}>Guardado</div>}
+        <button onClick={handleGuardar} disabled={saving} style={{ height: 50, border: 'none', borderRadius: 4, background: saving ? '#3A4D3A' : '#15803D', color: '#fff', fontWeight: 800, fontSize: 19, cursor: saving ? 'default' : 'pointer' }}>
           {saving ? 'Guardando…' : 'Guardar'}
         </button>
       </div>

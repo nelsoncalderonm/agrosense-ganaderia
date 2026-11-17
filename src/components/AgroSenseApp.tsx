@@ -403,7 +403,7 @@ export default function AgroSenseApp() {
       <div className="ag-main" style={{ flex:1, display:'flex', flexDirection:'column' }}>
       <EstadoSenal sync={sync} fincaId={currentFinca?.id} />
       {copiaDel && !sync.enLinea && (
-        <div style={{ fontFamily:'var(--font-jetbrains)', fontSize:10.5, color:'#6E8A6E', padding:'4px 16px', background:'#F7FAF6', borderBottom:'1px solid #E1E8DD' }}>
+        <div style={{ fontFamily:'var(--font-jetbrains)', fontSize:14, color:'#3A4D3A', padding:'4px 16px', background:'#F7FAF6', borderBottom:'1px solid #B9C6B4' }}>
           Mostrando datos guardados el {new Date(copiaDel).toLocaleString('es-CO', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}
         </div>
       )}

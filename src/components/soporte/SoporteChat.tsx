@@ -105,7 +105,7 @@ export default function SoporteChat({ origen, embebido = false }: Props) {
         className="ag-soporte-burbuja"
         style={{
           position: 'fixed', right: 16, bottom: 84, zIndex: 35, height: 52, padding: '0 18px 0 14px',
-          borderRadius: 26, border: 'none', background: '#15A34A', color: '#fff', fontWeight: 700, fontSize: 14,
+          borderRadius: 26, border: 'none', background: '#15803D', color: '#fff', fontWeight: 700, fontSize: 18,
           display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 6px 20px rgba(21,163,74,.35)', cursor: 'pointer',
         }}
       >
@@ -122,17 +122,17 @@ export default function SoporteChat({ origen, embebido = false }: Props) {
     : { position: 'fixed', right: 16, bottom: 84, zIndex: 45, width: 'min(380px, calc(100vw - 32px))', height: 'min(560px, calc(100dvh - 120px))', borderRadius: 12, boxShadow: '0 12px 40px rgba(20,40,20,.25)' };
 
   return (
-    <div className="animate-up" style={{ ...panel, background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid #E1E8DD' }}>
-      <div style={{ background: '#15A34A', color: '#fff', padding: origen === 'landing' ? '12px 52px 12px 14px' : '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
+    <div className="animate-up" style={{ ...panel, background: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', border: '1px solid #B9C6B4' }}>
+      <div style={{ background: '#15803D', color: '#fff', padding: origen === 'landing' ? '12px 52px 12px 14px' : '12px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 800, fontSize: 15 }}>Ayuda Ganado al Día</div>
-          <div style={{ fontSize: 11.5, opacity: 0.9 }}>Asistente con IA · le pasa con una persona si lo necesita</div>
+          <div style={{ fontWeight: 800, fontSize: 19 }}>Ayuda Ganado al Día</div>
+          <div style={{ fontSize: 15, opacity: 0.9 }}>Asistente con IA · le pasa con una persona si lo necesita</div>
         </div>
         {mensajes.length > 0 && (
-          <button onClick={reiniciar} title="Nueva conversación" style={{ background: 'rgba(255,255,255,.18)', border: 'none', color: '#fff', borderRadius: 6, fontSize: 12, padding: '6px 8px', cursor: 'pointer' }}>Nueva</button>
+          <button onClick={reiniciar} title="Nueva conversación" style={{ background: 'rgba(255,255,255,.18)', border: 'none', color: '#fff', borderRadius: 6, fontSize: 16, padding: '6px 8px', cursor: 'pointer' }}>Nueva</button>
         )}
         {!embebido && (
-          <button onClick={() => setAbierto(false)} aria-label="Cerrar" style={{ background: 'none', border: 'none', color: '#fff', fontSize: 22, lineHeight: 1, cursor: 'pointer', padding: 4 }}>×</button>
+          <button onClick={() => setAbierto(false)} aria-label="Cerrar" style={{ background: 'none', border: 'none', color: '#fff', fontSize: 25, lineHeight: 1, cursor: 'pointer', padding: 4 }}>×</button>
         )}
       </div>
 
@@ -141,15 +141,15 @@ export default function SoporteChat({ origen, embebido = false }: Props) {
         {mensajes.length === 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
             {sugerencias.map((s) => (
-              <button key={s} onClick={() => enviar(s)} style={{ border: '1px solid #BFD8BF', background: '#fff', color: '#2F6B2F', borderRadius: 16, padding: '7px 12px', fontSize: 13, cursor: 'pointer' }}>{s}</button>
+              <button key={s} onClick={() => enviar(s)} style={{ border: '1px solid #BFD8BF', background: '#fff', color: '#2F6B2F', borderRadius: 16, padding: '7px 12px', fontSize: 17, cursor: 'pointer' }}>{s}</button>
             ))}
           </div>
         )}
         {mensajes.map((m, i) => <Burbuja key={i} turno={m} />)}
-        {enviando && <div style={{ fontSize: 13, color: '#6E8A6E', padding: '4px 2px' }} className="animate-blink">Escribiendo…</div>}
-        {error && <div style={{ fontSize: 13, color: '#B42318', background: '#FEF3F2', borderRadius: 8, padding: '8px 10px' }}>{error}</div>}
+        {enviando && <div style={{ fontSize: 17, color: '#3A4D3A', padding: '4px 2px' }} className="animate-blink">Escribiendo…</div>}
+        {error && <div style={{ fontSize: 17, color: '#B42318', background: '#FEF3F2', borderRadius: 8, padding: '8px 10px' }}>{error}</div>}
         {whatsappUrl && (
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ alignSelf: 'flex-start', background: '#25D366', color: '#fff', fontWeight: 700, fontSize: 13.5, borderRadius: 20, padding: '9px 14px', textDecoration: 'none' }}>
+          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ alignSelf: 'flex-start', background: '#25D366', color: '#fff', fontWeight: 700, fontSize: 17, borderRadius: 20, padding: '9px 14px', textDecoration: 'none' }}>
             Escribir a un asesor por WhatsApp
           </a>
         )}
@@ -158,7 +158,7 @@ export default function SoporteChat({ origen, embebido = false }: Props) {
 
       <form
         onSubmit={(e) => { e.preventDefault(); enviar(texto); }}
-        style={{ display: 'flex', gap: 8, padding: 10, borderTop: '1px solid #E1E8DD', background: '#fff' }}
+        style={{ display: 'flex', gap: 8, padding: 10, borderTop: '1px solid #B9C6B4', background: '#fff' }}
       >
         <input
           value={texto}
@@ -166,9 +166,9 @@ export default function SoporteChat({ origen, embebido = false }: Props) {
           maxLength={1500}
           placeholder="Escriba su pregunta…"
           aria-label="Su pregunta"
-          style={{ flex: 1, height: 44, border: '1px solid #C5D2C0', borderRadius: 22, padding: '0 14px', fontSize: 15, outline: 'none' }}
+          style={{ flex: 1, minWidth: 0, height: 48, border: '1px solid #8FA38A', borderRadius: 24, padding: '0 14px', fontSize: 18, outline: 'none' }}
         />
-        <button type="submit" disabled={enviando || !texto.trim()} style={{ height: 44, minWidth: 44, borderRadius: 22, border: 'none', background: enviando || !texto.trim() ? '#A7C7A7' : '#15A34A', color: '#fff', fontWeight: 700, fontSize: 14, padding: '0 16px', cursor: 'pointer' }}>
+        <button type="submit" disabled={enviando || !texto.trim()} style={{ height: 48, minWidth: 44, flexShrink: 0, borderRadius: 24, border: 'none', background: enviando || !texto.trim() ? '#A7C7A7' : '#15803D', color: '#fff', fontWeight: 700, fontSize: 18, padding: '0 16px', cursor: 'pointer' }}>
           Enviar
         </button>
       </form>
@@ -180,9 +180,9 @@ function Burbuja({ turno }: { turno: Turno }) {
   const mio = turno.rol === 'user';
   return (
     <div style={{
-      alignSelf: mio ? 'flex-end' : 'flex-start', maxWidth: '85%', whiteSpace: 'pre-wrap', fontSize: 14.5, lineHeight: 1.4,
-      background: mio ? '#15A34A' : '#fff', color: mio ? '#fff' : '#1F2E1F',
-      border: mio ? 'none' : '1px solid #E1E8DD', borderRadius: 12, padding: '9px 12px',
+      alignSelf: mio ? 'flex-end' : 'flex-start', maxWidth: '85%', whiteSpace: 'pre-wrap', fontSize: 18, lineHeight: 1.4,
+      background: mio ? '#15803D' : '#fff', color: mio ? '#fff' : '#1F2E1F',
+      border: mio ? 'none' : '1px solid #B9C6B4', borderRadius: 12, padding: '9px 12px',
     }}>
       {turno.texto}
     </div>

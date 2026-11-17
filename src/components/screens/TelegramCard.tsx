@@ -6,13 +6,13 @@ import {
   generarLinkTelegram, getMiVinculoTelegram,
 } from '@/lib/supabase';
 
-const card: React.CSSProperties = { background: '#fff', border: '1px solid #E1E8DD', borderRadius: 6, padding: 16 };
+const card: React.CSSProperties = { background: '#fff', border: '1px solid #B9C6B4', borderRadius: 6, padding: 16 };
 const btn = (bg: string, disabled = false): React.CSSProperties => ({
-  height: 42, border: 'none', borderRadius: 4, background: disabled ? '#6E8A6E' : bg, color: '#fff',
-  fontWeight: 800, fontSize: 13, cursor: disabled ? 'default' : 'pointer', padding: '0 14px',
+  height: 42, border: 'none', borderRadius: 4, background: disabled ? '#3A4D3A' : bg, color: '#fff',
+  fontWeight: 800, fontSize: 17, cursor: disabled ? 'default' : 'pointer', padding: '0 14px',
 });
-const errBox: React.CSSProperties = { fontSize: 12, color: '#DC2626', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 };
-const okBox: React.CSSProperties = { fontSize: 12, color: '#15A34A', background: '#DCFCE7', padding: '6px 10px', borderRadius: 4 };
+const errBox: React.CSSProperties = { fontSize: 16, color: '#B91C1C', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 };
+const okBox: React.CSSProperties = { fontSize: 16, color: '#15803D', background: '#DCFCE7', padding: '6px 10px', borderRadius: 4 };
 
 export function TelegramCard({ fincaId, miMembresiaId }: { fincaId: string; miMembresiaId?: string }) {
   const [vinculo, setVinculo] = useState<DbTelegramVinculo | null>(null);
@@ -59,20 +59,20 @@ export function TelegramCard({ fincaId, miMembresiaId }: { fincaId: string; miMe
 
   return (
     <div style={card}>
-      <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 6 }}>Telegram</div>
-      <div style={{ fontSize: 12.5, color: '#4B634B', marginBottom: 12, lineHeight: 1.45 }}>
+      <div style={{ fontWeight: 800, fontSize: 19, marginBottom: 6 }}>Telegram</div>
+      <div style={{ fontSize: 16, color: '#4B634B', marginBottom: 12, lineHeight: 1.45 }}>
         Reciba cada lunes a las 6 a.m. el reporte de producción, inventario y trabajo de cada persona. También puede pedirlo con /resumen.
       </div>
       {cargando ? (
-        <div style={{ fontSize: 12, color: '#9DB39D' }}>Cargando…</div>
+        <div style={{ fontSize: 16, color: '#4A5E4A' }}>Cargando…</div>
       ) : vinculo && vinculo.activo ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={okBox}>Conectado{vinculo.telegram_username ? ` como @${vinculo.telegram_username}` : ''}</div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 17 }}>
             <input type="checkbox" checked={vinculo.recibir_reportes} onChange={toggleReportes} disabled={trabajando} />
             Recibir el reporte semanal
           </label>
-          <button onClick={desconectar} disabled={trabajando} style={btn('#DC2626', trabajando)}>Desconectar</button>
+          <button onClick={desconectar} disabled={trabajando} style={btn('#B91C1C', trabajando)}>Desconectar</button>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -81,7 +81,7 @@ export function TelegramCard({ fincaId, miMembresiaId }: { fincaId: string; miMe
             {trabajando ? 'Generando…' : 'Conectar Telegram'}
           </button>
           {link && (
-            <div style={{ fontSize: 12, color: '#4B634B' }}>
+            <div style={{ fontSize: 16, color: '#4B634B' }}>
               Si no se abrió Telegram, <a href={link} target="_blank" rel="noopener noreferrer">toque aquí</a> y presione <b>Iniciar</b>. Luego vuelva y recargue. El enlace vence en 30 minutos.
             </div>
           )}
@@ -115,27 +115,27 @@ export function EnlaceTelegramMiembro({ fincaId, membresiaId, nombre, conectado 
     <div style={{ marginTop: 8 }}>
       {!link ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          {conectado && <span style={{ fontSize: 11.5, color: '#15A34A', fontWeight: 700 }}>✓ Telegram conectado</span>}
-          <button onClick={generar} disabled={trabajando} style={{ height: 28, padding: '0 10px', border: '1px solid #9ED2EE', borderRadius: 4, background: '#E8F5FC', color: '#1C7DB0', fontWeight: 700, fontSize: 11.5, cursor: trabajando ? 'default' : 'pointer' }}>
+          {conectado && <span style={{ fontSize: 15, color: '#15803D', fontWeight: 700 }}>✓ Telegram conectado</span>}
+          <button onClick={generar} disabled={trabajando} style={{ height: 28, padding: '0 10px', border: '1px solid #9ED2EE', borderRadius: 4, background: '#E8F5FC', color: '#1C7DB0', fontWeight: 700, fontSize: 15, cursor: trabajando ? 'default' : 'pointer' }}>
             {trabajando ? 'Generando…' : conectado ? 'Nuevo enlace de Telegram' : 'Enlace de Telegram'}
           </button>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: '#F3F7F1', borderRadius: 4, padding: 8 }}>
-          <div style={{ fontSize: 11.5, color: '#4B634B', wordBreak: 'break-all' }}>{link}</div>
+          <div style={{ fontSize: 15, color: '#4B634B', wordBreak: 'break-all' }}>{link}</div>
           <div style={{ display: 'flex', gap: 6 }}>
             <a href={`https://wa.me/?text=${encodeURIComponent(texto)}`} target="_blank" rel="noopener noreferrer"
-              style={{ height: 30, padding: '0 10px', display: 'inline-flex', alignItems: 'center', borderRadius: 4, background: '#25D366', color: '#fff', fontWeight: 800, fontSize: 12, textDecoration: 'none' }}>
+              style={{ height: 30, padding: '0 10px', display: 'inline-flex', alignItems: 'center', borderRadius: 4, background: '#25D366', color: '#fff', fontWeight: 800, fontSize: 16, textDecoration: 'none' }}>
               Enviar por WhatsApp
             </a>
-            <button onClick={copiar} style={{ height: 30, padding: '0 10px', border: '1px solid #C5D2C0', borderRadius: 4, background: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+            <button onClick={copiar} style={{ height: 30, padding: '0 10px', border: '1px solid #8FA38A', borderRadius: 4, background: '#fff', fontWeight: 700, fontSize: 16, cursor: 'pointer' }}>
               {copiado ? 'Copiado' : 'Copiar mensaje'}
             </button>
           </div>
-          <div style={{ fontSize: 11, color: '#6E8A6E' }}>El enlace sirve por 7 días y una sola vez.</div>
+          <div style={{ fontSize: 15, color: '#3A4D3A' }}>El enlace sirve por 7 días y una sola vez.</div>
         </div>
       )}
-      {err && <div style={{ fontSize: 11.5, color: '#DC2626', marginTop: 4 }}>{err}</div>}
+      {err && <div style={{ fontSize: 15, color: '#B91C1C', marginTop: 4 }}>{err}</div>}
     </div>
   );
 }
