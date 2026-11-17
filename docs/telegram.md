@@ -3,6 +3,8 @@
 ## Qué hace
 - **Vincular:** en Ajustes → *Conectar Telegram* se genera un enlace de un solo uso (`t.me/<bot>?start=<código>`, vence en 30 min). Al tocar *Iniciar* el chat queda ligado a la membresía (persona + finca).
 - **Reporte semanal:** cron de Vercel los lunes 11:00 UTC (6 a.m. Colombia). Cubre la semana anterior (lunes a domingo): producción (pesajes, GDP vs. semana anterior, kilos ganados, mejores y peores), inventario y movimientos, y mano de obra por persona (pesajes, sesiones, tareas de agenda completadas). Lo reciben los vínculos con `recibir_reportes` (por defecto propietario y administrador).
+- **PDF:** cada reporte (semanal y `/resumen`) se envía también como PDF adjunto (`src/lib/reportePdf.ts`, jsPDF).
+- **Enlace para clientes:** en Ajustes → Miembros, el propietario o un superadmin genera el enlace de Telegram de cada propietario/administrador (vence en 7 días) y lo envía por WhatsApp. No se usa el ID de Telegram: un bot no puede escribirle a alguien que no le ha dado *Iniciar*.
 - **Comandos:** `/resumen` (propietario/administrador, últimos 7 días), `/ayuda`.
 
 Todo el cálculo está en la función SQL `agrosense.reporte_finca(finca, desde, hasta)`; `src/lib/reporteFinca.ts` solo le da formato.

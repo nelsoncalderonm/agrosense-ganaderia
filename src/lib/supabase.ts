@@ -395,13 +395,13 @@ export async function getMiVinculoTelegram(membresia_id: string): Promise<DbTele
   return (data ?? null) as DbTelegramVinculo | null;
 }
 
-export async function generarLinkTelegram(finca_id: string): Promise<{ url: string | null; error: string | null }> {
+export async function generarLinkTelegram(finca_id: string, membresia_id?: string): Promise<{ url: string | null; error: string | null }> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return { url: null, error: 'Sesión vencida, vuelva a ingresar' };
   const res = await fetch('/api/telegram/vincular', {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: `Bearer ${session.access_token}` },
-    body: JSON.stringify({ finca_id }),
+    body: JSON.stringify({ finca_id, membresia_id }),
   });
   const body = await res.json().catch(() => ({})) as { url?: string; error?: string };
   return { url: body.url ?? null, error: res.ok ? null : (body.error ?? 'No se pudo generar el enlace') };
@@ -415,4 +415,10 @@ export async function actualizarVinculoTelegram(id: string, payload: { recibir_r
 export async function desconectarTelegram(id: string): Promise<{ error: string | null }> {
   const { error } = await supabase.from('telegram_vinculos').delete().eq('id', id);
   return { error: error?.message ?? null };
+}
+
+// Membresías de la finca que ya tienen Telegram conectado (owner/admin las pueden ver por RLS).
+export async function getConectadosTelegram(finca_id: string): Promise<Set<string>> {
+  const { data } = await supabase.from('telegram_vinculos').select('membresia_id').eq('finca_id', finca_id).eq('activo', true);
+  return new Set((data ?? []).map(r => r.membresia_id as string));
 }

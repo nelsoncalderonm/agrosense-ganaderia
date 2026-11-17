@@ -91,3 +91,51 @@ export function TelegramCard({ fincaId, miMembresiaId }: { fincaId: string; miMe
     </div>
   );
 }
+
+// Botón por miembro: el propietario genera el enlace y se lo envía al cliente o trabajador por WhatsApp.
+export function EnlaceTelegramMiembro({ fincaId, membresiaId, nombre, conectado }: { fincaId: string; membresiaId: string; nombre: string; conectado: boolean }) {
+  const [link, setLink] = useState<string | null>(null);
+  const [trabajando, setTrabajando] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [copiado, setCopiado] = useState(false);
+
+  const generar = async () => {
+    setTrabajando(true); setErr(null);
+    const { url, error } = await generarLinkTelegram(fincaId, membresiaId);
+    setTrabajando(false);
+    if (error || !url) { setErr(error ?? 'No se pudo generar el enlace'); return; }
+    setLink(url);
+  };
+  const texto = link ? `Hola ${nombre}, para recibir cada lunes el reporte de su finca en Telegram abra este enlace y toque *Iniciar*: ${link}` : '';
+  const copiar = async () => {
+    try { await navigator.clipboard.writeText(texto); setCopiado(true); } catch { setErr('No se pudo copiar'); }
+  };
+
+  return (
+    <div style={{ marginTop: 8 }}>
+      {!link ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {conectado && <span style={{ fontSize: 11.5, color: '#15A34A', fontWeight: 700 }}>✓ Telegram conectado</span>}
+          <button onClick={generar} disabled={trabajando} style={{ height: 28, padding: '0 10px', border: '1px solid #9ED2EE', borderRadius: 4, background: '#E8F5FC', color: '#1C7DB0', fontWeight: 700, fontSize: 11.5, cursor: trabajando ? 'default' : 'pointer' }}>
+            {trabajando ? 'Generando…' : conectado ? 'Nuevo enlace de Telegram' : 'Enlace de Telegram'}
+          </button>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: '#F3F7F1', borderRadius: 4, padding: 8 }}>
+          <div style={{ fontSize: 11.5, color: '#4B634B', wordBreak: 'break-all' }}>{link}</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <a href={`https://wa.me/?text=${encodeURIComponent(texto)}`} target="_blank" rel="noopener noreferrer"
+              style={{ height: 30, padding: '0 10px', display: 'inline-flex', alignItems: 'center', borderRadius: 4, background: '#25D366', color: '#fff', fontWeight: 800, fontSize: 12, textDecoration: 'none' }}>
+              Enviar por WhatsApp
+            </a>
+            <button onClick={copiar} style={{ height: 30, padding: '0 10px', border: '1px solid #C5D2C0', borderRadius: 4, background: '#fff', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
+              {copiado ? 'Copiado' : 'Copiar mensaje'}
+            </button>
+          </div>
+          <div style={{ fontSize: 11, color: '#6E8A6E' }}>El enlace sirve por 7 días y una sola vez.</div>
+        </div>
+      )}
+      {err && <div style={{ fontSize: 11.5, color: '#DC2626', marginTop: 4 }}>{err}</div>}
+    </div>
+  );
+}

@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { cronAutorizado } from '@/lib/cronAuth';
-import { enviarMensaje, semanaAnterior, telegramConfigurado } from '@/lib/telegram';
+import { enviarDocumento, enviarMensaje, semanaAnterior, telegramConfigurado } from '@/lib/telegram';
+import { generarPdfReporte, nombreArchivoReporte } from '@/lib/reportePdf';
 import { formatearReporte, type ReporteFinca } from '@/lib/reporteFinca';
 
 export const maxDuration = 300;
@@ -21,18 +22,20 @@ export async function GET(request: Request) {
     .select('vinculo_id').eq('tipo', 'semanal').eq('periodo_inicio', desde).eq('ok', true);
   const enviados = new Set((yaEnviados ?? []).map(r => r.vinculo_id));
 
-  const cache = new Map<string, string>();
+  const cache = new Map<string, { texto: string; pdf: Uint8Array; nombre: string }>();
   let ok = 0, fallos = 0;
   for (const v of vincs ?? []) {
     if (enviados.has(v.id)) continue;
-    let texto = cache.get(v.finca_id);
-    if (!texto) {
+    let rep = cache.get(v.finca_id);
+    if (!rep) {
       const { data, error: rErr } = await admin.rpc('reporte_finca', { p_finca_id: v.finca_id, p_desde: desde, p_hasta: hasta });
       if (rErr || !data) { fallos++; continue; }
-      texto = formatearReporte(data as ReporteFinca);
-      cache.set(v.finca_id, texto);
+      const r = data as ReporteFinca;
+      rep = { texto: formatearReporte(r), pdf: generarPdfReporte(r), nombre: nombreArchivoReporte(r) };
+      cache.set(v.finca_id, rep);
     }
-    const res = await enviarMensaje(v.chat_id, texto);
+    const res = await enviarMensaje(v.chat_id, rep.texto);
+    if (res.ok) await enviarDocumento(v.chat_id, rep.pdf, rep.nombre, '📄 Reporte en PDF para guardar o reenviar');
     if (res.ok) ok++; else fallos++;
     // Si el usuario bloqueó el bot, dejamos de intentar.
     if (!res.ok && /blocked|chat not found|deactivated/i.test(res.error ?? '')) {

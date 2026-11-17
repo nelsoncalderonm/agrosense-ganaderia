@@ -112,3 +112,16 @@ export async function asegurarWebhook(): Promise<void> {
     ],
   });
 }
+
+export async function enviarDocumento(chatId: number, archivo: Uint8Array, nombre: string, caption?: string): Promise<{ ok: boolean; error?: string }> {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) return { ok: false, error: 'Falta TELEGRAM_BOT_TOKEN' };
+  const form = new FormData();
+  form.append('chat_id', String(chatId));
+  form.append('document', new Blob([archivo as BlobPart], { type: 'application/pdf' }), nombre);
+  if (caption) { form.append('caption', caption); form.append('parse_mode', 'HTML'); }
+  const res = await fetch(`https://api.telegram.org/bot${token}/sendDocument`, { method: 'POST', body: form });
+  if (res.ok) return { ok: true };
+  const body = await res.json().catch(() => null) as { description?: string } | null;
+  return { ok: false, error: body?.description ?? `HTTP ${res.status}` };
+}

@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { RoleKey } from '@/data/agrosense';
-import { DbFinca, DbMembresia, actualizarFinca, actualizarMembresia, eliminarMembresia, cambiarPassword } from '@/lib/supabase';
-import { TelegramCard } from './TelegramCard';
+import { DbFinca, DbMembresia, actualizarFinca, actualizarMembresia, eliminarMembresia, cambiarPassword, getConectadosTelegram } from '@/lib/supabase';
+import { TelegramCard, EnlaceTelegramMiembro } from './TelegramCard';
 
 interface Props {
   onOpenDrawer: () => void;
@@ -82,7 +82,7 @@ function FincaForm({ finca, onGuardado }: { finca: DbFinca; onGuardado: () => vo
   );
 }
 
-function MiembroRow({ m, esUnoMismo, onActualizado }: { m: DbMembresia; esUnoMismo: boolean; onActualizado: () => void }) {
+function MiembroRow({ m, esUnoMismo, onActualizado, fincaId, conectado }: { m: DbMembresia; esUnoMismo: boolean; onActualizado: () => void; fincaId?: string; conectado: boolean }) {
   const [rol, setRol] = useState<RoleKey>(m.rol);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -119,6 +119,9 @@ function MiembroRow({ m, esUnoMismo, onActualizado }: { m: DbMembresia; esUnoMis
           )}
         </div>
       </div>
+      {fincaId && !esUnoMismo && (m.rol === 'owner' || m.rol === 'admin') && (
+        <EnlaceTelegramMiembro fincaId={fincaId} membresiaId={m.id} nombre={m.nombre} conectado={conectado} />
+      )}
       {err && <div style={{ fontSize: 11.5, color: '#DC2626', marginTop: 6 }}>{err}</div>}
     </div>
   );
@@ -193,6 +196,13 @@ function CuentaForm({ displayName, miMembresiaId, onNombreActualizado }: { displ
 
 export default function AjustesScreen({ onOpenDrawer, finca, role, miembros, miMembresiaId, displayName, onFincaActualizada, onMiembrosActualizados }: Props) {
   const isOwner = role === 'owner';
+  const [conectados, setConectados] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!finca || !isOwner) return;
+    let vivo = true;
+    getConectadosTelegram(finca.id).then(s => { if (vivo) setConectados(s); });
+    return () => { vivo = false; };
+  }, [finca, isOwner, miembros]);
 
   return (
     <div style={{ paddingBottom: 90 }}>
@@ -221,7 +231,7 @@ export default function AjustesScreen({ onOpenDrawer, finca, role, miembros, miM
               {miembros.length === 0 && <div style={{ padding: 14, fontSize: 12, color: '#9DB39D' }}>Sin miembros</div>}
               {miembros.map((m, i) => (
                 <div key={m.id} style={{ borderTop: i === 0 ? 'none' : undefined }}>
-                  <MiembroRow m={m} esUnoMismo={m.id === miMembresiaId} onActualizado={onMiembrosActualizados} />
+                  <MiembroRow m={m} esUnoMismo={m.id === miMembresiaId} onActualizado={onMiembrosActualizados} fincaId={finca?.id} conectado={conectados.has(m.id)} />
                 </div>
               ))}
             </div>
