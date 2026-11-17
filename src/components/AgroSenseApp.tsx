@@ -7,7 +7,7 @@ import {
   supabase, getFincas, getPotreros, getAnimales,
   getAlertas, getEventos, getProveedores, getClientes, getGastos, getMovimientos,
   getVacunaciones, getNacimientos, getBajas, getMembresiasFinca,
-  registrarPesaje, getMisMembresias, getIsSuperadmin,
+  registrarPesaje, getMisMembresias, getIsSuperadmin, getMiOnboardingPendiente, DbOrgOnboarding,
   DbFinca, DbPotrero, DbAnimal, DbAlerta, DbEvento, DbProveedor, DbCliente, DbGasto, DbMovimiento, DbMembresia,
   DbVacunacion, DbNacimiento, DbBaja,
 } from '@/lib/supabase';
@@ -23,6 +23,7 @@ import Drawer from './ui/Drawer';
 import AnimalProfile from './ui/AnimalProfile';
 import FincaPicker from './ui/FincaPicker';
 import LoginScreen from './auth/LoginScreen';
+import OnboardingWizard from './onboarding/OnboardingWizard';
 
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: 'inicio',   label: 'Inicio',   icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg> },
@@ -112,6 +113,8 @@ export default function AgroSenseApp() {
   const [authChecked, setAuthChecked] = useState(false);
   const [membresias, setMembresias] = useState<DbMembresia[]>([]);
   const [isSuperadmin, setIsSuperadmin] = useState(false);
+  const [onboarding, setOnboarding] = useState<DbOrgOnboarding | null>(null);
+  const [recarga, setRecarga] = useState(0);
 
   // DB state
   const [loading,   setLoading]   = useState(true);
@@ -171,7 +174,8 @@ export default function AgroSenseApp() {
 
   useEffect(() => {
     if (!session) return;
-    Promise.all([getFincas(), getMisMembresias(), getIsSuperadmin()]).then(([f, m, superadmin]) => {
+    Promise.all([getFincas(), getMisMembresias(), getIsSuperadmin(), getMiOnboardingPendiente()]).then(([f, m, superadmin, ob]) => {
+      setOnboarding(ob);
       setMembresias(m);
       setIsSuperadmin(superadmin);
       const allowed = new Set(m.map(x => x.finca_id));
@@ -180,7 +184,9 @@ export default function AgroSenseApp() {
       if (mine.length) loadFincaData(mine[0].id).finally(() => setLoading(false));
       else setLoading(false);
     });
-  }, [session, loadFincaData]);
+  // Solo recargar cuando cambia el usuario (no en cada refresco de token).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user.id, recarga, loadFincaData]);
 
   const handleSignOut = () => { supabase.auth.signOut(); };
 
@@ -219,6 +225,18 @@ export default function AgroSenseApp() {
   if (!authChecked) return Spinner('Verificando sesión...');
   if (!session) return <LoginScreen />;
   if (loading) return Spinner('Cargando datos...');
+
+  // Cliente nuevo: asistente de configuración hasta terminarlo.
+  if (onboarding) {
+    return (
+      <OnboardingWizard
+        org={onboarding}
+        session={session}
+        onTerminar={() => { setLoading(true); setOnboarding(null); setFincaIdx(0); setTab('inicio'); setRecarga(r => r + 1); }}
+        onSalir={handleSignOut}
+      />
+    );
+  }
 
   if (!fincas.length) {
     return (

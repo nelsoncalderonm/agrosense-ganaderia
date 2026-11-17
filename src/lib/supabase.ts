@@ -382,3 +382,73 @@ export async function registrarPesaje(payload: {
   });
   return { data: (data as DbPesaje | null) ?? null, error: error?.message ?? null };
 }
+
+// ---------- Onboarding de clientes nuevos ----------
+
+export type OnboardingPaso = 'contrasena' | 'finca' | 'potreros' | 'animales' | 'equipo' | 'lector' | 'listo';
+
+export type DbOrgOnboarding = {
+  id: string; nombre: string; origen: 'manual' | 'hotmart';
+  onboarding_paso: OnboardingPaso; onboarding_completado_at: string | null;
+};
+
+export type DbPlan = { id: string; codigo: string; nombre: string; max_fincas: number | null; max_animales: number | null };
+
+/** Organización de la que soy dueño y que aún no termina el onboarding (o null). */
+export async function getMiOnboardingPendiente(): Promise<DbOrgOnboarding | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: mias } = await supabase.from('organizacion_miembros').select('organizacion_id').eq('auth_user_id', user.id);
+  const ids = (mias ?? []).map(m => m.organizacion_id as string);
+  if (!ids.length) return null;
+  const { data } = await supabase.from('organizaciones')
+    .select('id, nombre, origen, onboarding_paso, onboarding_completado_at')
+    .in('id', ids).is('onboarding_completado_at', null).order('created_at').limit(1);
+  return (data?.[0] ?? null) as DbOrgOnboarding | null;
+}
+
+export async function guardarPasoOnboarding(org_id: string, paso: OnboardingPaso, extra?: { nombre?: string }): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('organizaciones').update({
+    onboarding_paso: paso,
+    ...(paso === 'listo' ? { onboarding_completado_at: new Date().toISOString() } : {}),
+    ...(extra?.nombre ? { nombre: extra.nombre } : {}),
+  }).eq('id', org_id);
+  return { error: error?.message ?? null };
+}
+
+export async function getFincasDeOrganizacion(org_id: string): Promise<DbFinca[]> {
+  const { data } = await supabase.from('fincas').select('*').eq('organizacion_id', org_id).eq('activa', true).order('created_at');
+  return (data ?? []) as DbFinca[];
+}
+
+export async function crearPotrero(payload: { finca_id: string; nombre: string; hectareas: number | null; capacidad: number }): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('potreros').insert(payload);
+  return { error: error?.message ?? null };
+}
+
+export async function getPlanes(): Promise<DbPlan[]> {
+  const { data } = await supabase.from('planes').select('id, codigo, nombre, max_fincas, max_animales').eq('activo', true).order('nombre');
+  return (data ?? []) as DbPlan[];
+}
+
+async function postConSesion(url: string, body: unknown): Promise<{ data: Record<string, unknown> | null; error: string | null }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) return { data: null, error: json.error ?? `Error ${res.status}` };
+  return { data: json, error: null };
+}
+
+/** El dueño invita a alguien de su equipo a la finca; le llega un correo para entrar. */
+export function invitarMiembro(payload: { finca_id: string; email: string; nombre: string; rol: 'admin' | 'contable' | 'vaquero' }) {
+  return postConSesion('/api/onboarding/invitar', payload);
+}
+
+/** Superadmin: alta de un cliente vendido por fuera de Hotmart. */
+export function crearClienteConInvitacion(payload: { organizacion: string; nombre: string; email: string; telefono?: string; nit?: string; plan_id?: string }) {
+  return postConSesion('/api/admin/nuevo-cliente', payload);
+}
