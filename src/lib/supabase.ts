@@ -4,7 +4,23 @@ import type { RoleKey } from '@/data/agrosense';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Todas las tablas viven en el esquema "agrosense" (proyecto Supabase frigopuntos).
+// El esquema debe estar en Settings → API → Exposed schemas.
+export const AGROSENSE_SCHEMA = 'agrosense';
+
+// Con señal débil en el campo una consulta puede quedarse colgada: la cortamos a los 20 s
+// para que la app pase a usar la copia del celular.
+const fetchConTiempo: typeof fetch = (input, init) => {
+  if (init?.signal) return fetch(input, init);
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 20000);
+  return fetch(input, { ...init, signal: ctrl.signal }).finally(() => clearTimeout(t));
+};
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  db: { schema: AGROSENSE_SCHEMA },
+  global: { fetch: fetchConTiempo },
+});
 
 // ---------- typed helpers ----------
 
@@ -12,6 +28,14 @@ export type DbFinca = {
   id: string; nombre: string; ubicacion: string | null;
   hectareas: number | null; valor_cop: number | null; activa: boolean;
   organizacion_id: string | null;
+  // Sinigán (predio)
+  ruv?: string | null; departamento?: string | null; municipio?: string | null;
+  responsable_tipo_doc?: string | null; responsable_documento?: string | null;
+  meta_peso_kg?: number | null;           // peso para sacar al matadero
+  precio_kg?: number | null;              // precio del kilo en pie que pone el ganadero
+  precio_kg_actualizado?: string | null;
+  latitud?: number | null; longitud?: number | null;
+  lindero?: [number, number][] | null;
 };
 
 export type DbOrganizacion = {
@@ -24,6 +48,7 @@ export type DbPotrero = {
   id: string; finca_id: string; nombre: string; capacidad: number;
   hectareas: number | null; aforo: number | null;
   estado: string; dias_estado: number;
+  poligono?: [number, number][] | null;
 };
 
 export type DbAnimal = {
@@ -33,6 +58,8 @@ export type DbAnimal = {
   estado: string; estado_txt: string | null;
   peso_actual: number | null; gdp: number | null; gdp_delta: number | null;
   dias_potrero: number | null; activo: boolean;
+  // Sinigán: DIN = identificación oficial; rfid/arete = chapeta de manejo.
+  din?: string | null; especie?: 'bovino' | 'bufalino'; fecha_nacimiento?: string | null;
 };
 
 export type DbPesaje = {
@@ -113,21 +140,23 @@ export type DbMembresia = {
 };
 
 export async function getMisMembresias(): Promise<DbMembresia[]> {
-  const { data: { user } } = await supabase.auth.getUser();
+  // getSession lee la sesión del celular (getUser necesita internet).
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) return [];
   // Explicit filter: superadmins can SELECT every row per RLS, but this
   // helper must only ever return the caller's own memberships.
-  const { data } = await supabase.from('Agrosense_membresias').select('*').eq('auth_user_id', user.id);
+  const { data } = await supabase.from('membresias').select('*').eq('auth_user_id', user.id);
   return (data ?? []) as DbMembresia[];
 }
 
 export async function getIsSuperadmin(): Promise<boolean> {
-  const { data } = await supabase.rpc('ag_is_superadmin');
+  const { data } = await supabase.rpc('es_superadmin');
   return data === true;
 }
 
 export async function getMembresiasFinca(finca_id: string): Promise<DbMembresia[]> {
-  const { data } = await supabase.from('Agrosense_membresias').select('*').eq('finca_id', finca_id).order('nombre');
+  const { data } = await supabase.from('membresias').select('*').eq('finca_id', finca_id).order('nombre');
   return (data ?? []) as DbMembresia[];
 }
 
@@ -135,7 +164,8 @@ export async function getMembresiasFinca(finca_id: string): Promise<DbMembresia[
 
 export async function getFincas(): Promise<DbFinca[]> {
   // Orden custom: Hacienda La Esperanza primero (sede principal con datos completos)
-  const { data } = await supabase.from('Agrosense_fincas').select('*').eq('activa', true);
+  const { data, error } = await supabase.from('fincas').select('*').eq('activa', true);
+  if (error) throw error; // sin señal: quien llama usa la copia del celular
   const sorted = (data ?? []).sort((a, b) => {
     if (a.nombre === 'Hacienda La Esperanza') return -1;
     if (b.nombre === 'Hacienda La Esperanza') return 1;
@@ -145,22 +175,22 @@ export async function getFincas(): Promise<DbFinca[]> {
 }
 
 export async function crearFinca(payload: { nombre: string; ubicacion: string | null; hectareas: number | null; organizacion_id: string | null }): Promise<{ error: string | null; id: string | null }> {
-  const { data, error } = await supabase.from('Agrosense_fincas').insert({ ...payload, activa: true }).select('id').single();
+  const { data, error } = await supabase.from('fincas').insert({ ...payload, activa: true }).select('id').single();
   return { error: error?.message ?? null, id: data?.id ?? null };
 }
 
-export async function actualizarFinca(finca_id: string, payload: { nombre: string; ubicacion: string | null; hectareas: number | null }): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('Agrosense_fincas').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', finca_id);
+export async function actualizarFinca(finca_id: string, payload: { nombre?: string; ubicacion?: string | null; hectareas?: number | null; latitud?: number | null; longitud?: number | null; lindero?: [number, number][] | null }): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('fincas').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', finca_id);
   return { error: error?.message ?? null };
 }
 
 export async function actualizarMembresia(id: string, payload: { nombre?: string; rol?: RoleKey }): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('Agrosense_membresias').update(payload).eq('id', id);
+  const { error } = await supabase.from('membresias').update(payload).eq('id', id);
   return { error: error?.message ?? null };
 }
 
 export async function eliminarMembresia(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('Agrosense_membresias').delete().eq('id', id);
+  const { error } = await supabase.from('membresias').delete().eq('id', id);
   return { error: error?.message ?? null };
 }
 
@@ -170,42 +200,44 @@ export async function cambiarPassword(password: string): Promise<{ error: string
 }
 
 export async function getOrganizaciones(): Promise<DbOrganizacion[]> {
-  const { data } = await supabase.from('Agrosense_organizaciones').select('*').eq('activa', true).order('nombre');
+  const { data } = await supabase.from('organizaciones').select('*').eq('activa', true).order('nombre');
   return (data ?? []) as DbOrganizacion[];
 }
 
 export async function crearOrganizacion(payload: { nombre: string; nit: string | null; contacto_nombre: string | null; contacto_email: string | null; contacto_telefono: string | null }): Promise<{ error: string | null; id: string | null }> {
-  const { data, error } = await supabase.from('Agrosense_organizaciones').insert({ ...payload, activa: true }).select('id').single();
+  const { data, error } = await supabase.from('organizaciones').insert({ ...payload, activa: true }).select('id').single();
   return { error: error?.message ?? null, id: data?.id ?? null };
 }
 
 export async function getPotreros(finca_id: string): Promise<DbPotrero[]> {
-  const { data } = await supabase.from('Agrosense_potreros').select('*').eq('finca_id', finca_id).order('nombre');
+  const { data, error } = await supabase.from('potreros').select('*').eq('finca_id', finca_id).order('nombre');
+  if (error) throw error;
   return data ?? [];
 }
 
 export async function getAnimales(finca_id: string): Promise<DbAnimal[]> {
-  const { data } = await supabase.from('Agrosense_animales').select('*').eq('finca_id', finca_id).eq('activo', true).order('nombre');
+  const { data, error } = await supabase.from('animales').select('*').eq('finca_id', finca_id).eq('activo', true).order('nombre');
+  if (error) throw error;
   return data ?? [];
 }
 
 export async function getPesajesRecientes(finca_id: string, limit = 10): Promise<DbPesaje[]> {
-  const { data } = await supabase.from('Agrosense_pesajes').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false }).limit(limit);
+  const { data } = await supabase.from('pesajes').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false }).limit(limit);
   return data ?? [];
 }
 
 export async function getAlertas(finca_id: string): Promise<DbAlerta[]> {
-  const { data } = await supabase.from('Agrosense_alertas').select('*').eq('finca_id', finca_id).eq('resuelta', false).order('fecha_vence');
+  const { data } = await supabase.from('alertas').select('*').eq('finca_id', finca_id).eq('resuelta', false).order('fecha_vence');
   return data ?? [];
 }
 
 export async function getEventos(finca_id: string): Promise<DbEvento[]> {
-  const { data } = await supabase.from('Agrosense_eventos').select('*').eq('finca_id', finca_id).gte('fecha', new Date().toISOString().split('T')[0]).order('fecha');
+  const { data } = await supabase.from('eventos').select('*').eq('finca_id', finca_id).gte('fecha', new Date().toISOString().split('T')[0]).order('fecha');
   return data ?? [];
 }
 
 export async function getProveedores(finca_id: string): Promise<DbProveedor[]> {
-  const { data } = await supabase.from('Agrosense_proveedores').select('*').eq('finca_id', finca_id).eq('activo', true).order('nombre');
+  const { data } = await supabase.from('proveedores').select('*').eq('finca_id', finca_id).eq('activo', true).order('nombre');
   return data ?? [];
 }
 
@@ -213,17 +245,17 @@ export async function crearProveedor(payload: {
   finca_id: string; nombre: string; nit: string | null; ciudad: string | null;
   tipo: string | null; telefono: string | null; email: string | null;
 }): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('Agrosense_proveedores').insert({ ...payload, via_email: false, activo: true });
+  const { error } = await supabase.from('proveedores').insert({ ...payload, via_email: false, activo: true });
   return { error: error?.message ?? null };
 }
 
 export async function desactivarProveedor(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('Agrosense_proveedores').update({ activo: false }).eq('id', id);
+  const { error } = await supabase.from('proveedores').update({ activo: false }).eq('id', id);
   return { error: error?.message ?? null };
 }
 
 export async function getClientes(finca_id: string): Promise<DbCliente[]> {
-  const { data } = await supabase.from('Agrosense_clientes').select('*').eq('finca_id', finca_id).eq('activo', true).order('nombre');
+  const { data } = await supabase.from('clientes').select('*').eq('finca_id', finca_id).eq('activo', true).order('nombre');
   return data ?? [];
 }
 
@@ -231,17 +263,17 @@ export async function crearCliente(payload: {
   finca_id: string; nombre: string; nit: string | null; ciudad: string | null;
   tipo: string | null; telefono: string | null; email: string | null;
 }): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('Agrosense_clientes').insert({ ...payload, activo: true });
+  const { error } = await supabase.from('clientes').insert({ ...payload, activo: true });
   return { error: error?.message ?? null };
 }
 
 export async function desactivarCliente(id: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('Agrosense_clientes').update({ activo: false }).eq('id', id);
+  const { error } = await supabase.from('clientes').update({ activo: false }).eq('id', id);
   return { error: error?.message ?? null };
 }
 
 export async function getGastos(finca_id: string): Promise<DbGasto[]> {
-  const { data } = await supabase.from('Agrosense_gastos').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false }).limit(50);
+  const { data } = await supabase.from('gastos').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false }).limit(50);
   return data ?? [];
 }
 
@@ -249,12 +281,12 @@ export async function crearGasto(payload: {
   finca_id: string; proveedor_id: string | null; concepto: string;
   items_desc: string | null; monto: number; fecha: string; via: string;
 }): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('Agrosense_gastos').insert({ ...payload, nit_proveedor: null, pendiente_sync: false });
+  const { error } = await supabase.from('gastos').insert({ ...payload, nit_proveedor: null, pendiente_sync: false });
   return { error: error?.message ?? null };
 }
 
 export async function getMovimientos(finca_id: string): Promise<DbMovimiento[]> {
-  const { data } = await supabase.from('Agrosense_movimientos').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false }).limit(30);
+  const { data } = await supabase.from('movimientos').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false }).limit(30);
   return data ?? [];
 }
 
@@ -265,12 +297,32 @@ export async function crearMovimiento(payload: {
   costo_cop: number | null; utilidad_cop: number | null; transporte_cop: number | null;
   notas: string | null;
 }): Promise<{ error: string | null }> {
-  const { error } = await supabase.from('Agrosense_movimientos').insert(payload);
+  const { error } = await supabase.from('movimientos').insert(payload);
+  return { error: error?.message ?? null };
+}
+
+// Tratamientos con días de retiro que todavía no terminan (el animal no se debe vender).
+export type DbRetiro = {
+  id: string; animal_id: string | null; potrero_id: string | null;
+  producto: string | null; retiro_hasta: string;
+};
+export async function getRetiros(finca_id: string): Promise<DbRetiro[]> {
+  const hoy = new Date().toLocaleDateString('en-CA');
+  const { data } = await supabase.from('eventos_sanitarios')
+    .select('id, animal_id, potrero_id, producto, retiro_hasta')
+    .eq('finca_id', finca_id).gt('dias_retiro', 0).gte('retiro_hasta', hoy);
+  return (data ?? []) as DbRetiro[];
+}
+
+export async function actualizarVentaFinca(finca_id: string, payload: { meta_peso_kg: number; precio_kg: number | null }): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('fincas').update({
+    ...payload, precio_kg_actualizado: new Date().toISOString(), updated_at: new Date().toISOString(),
+  }).eq('id', finca_id);
   return { error: error?.message ?? null };
 }
 
 export async function getVacunaciones(finca_id: string): Promise<DbVacunacion[]> {
-  const { data } = await supabase.from('Agrosense_vacunaciones').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false });
+  const { data } = await supabase.from('vacunaciones').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false });
   return (data ?? []) as DbVacunacion[];
 }
 
@@ -285,7 +337,7 @@ export async function registrarVacunacion(
     if (uploadErr) return { error: uploadErr.message };
     pdf_path = path;
   }
-  const { error } = await supabase.from('Agrosense_vacunaciones').insert({ ...payload, pdf_path });
+  const { error } = await supabase.from('vacunaciones').insert({ ...payload, pdf_path });
   return { error: error?.message ?? null };
 }
 
@@ -296,7 +348,7 @@ export async function getVacunacionPdfUrl(pdf_path: string): Promise<string | nu
 }
 
 export async function getNacimientos(finca_id: string): Promise<DbNacimiento[]> {
-  const { data } = await supabase.from('Agrosense_nacimientos').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false });
+  const { data } = await supabase.from('nacimientos').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false });
   return (data ?? []) as DbNacimiento[];
 }
 
@@ -304,32 +356,17 @@ export async function registrarNacimiento(payload: {
   finca_id: string; potrero_id: string | null; fecha: string; sexo: string;
   arete: string; nombre: string; raza: string; peso_kg: number | null;
 }): Promise<{ error: string | null }> {
-  const categoria = 'Cría';
-  const { data: animal, error: animalErr } = await supabase.from('Agrosense_animales').insert({
-    finca_id: payload.finca_id, potrero_id: payload.potrero_id,
-    nombre: payload.nombre || null, arete: payload.arete, rfid: payload.arete,
-    raza: payload.raza, sexo: payload.sexo, categoria,
-    estado: 'green', estado_txt: 'Sano · recién nacido',
-    peso_actual: payload.peso_kg, gdp: null, gdp_delta: null, dias_potrero: 0, activo: true,
-  }).select().single();
-  if (animalErr) return { error: animalErr.message };
-
-  const { error: nacErr } = await supabase.from('Agrosense_nacimientos').insert({
-    finca_id: payload.finca_id, animal_id: animal.id, potrero_id: payload.potrero_id,
-    fecha: payload.fecha, sexo: payload.sexo,
+  const { error } = await supabase.rpc('registrar_animal', {
+    p_finca_id: payload.finca_id, p_arete: payload.arete, p_nombre: payload.nombre,
+    p_raza: payload.raza, p_sexo: payload.sexo, p_categoria: 'Cría',
+    p_potrero_id: payload.potrero_id, p_peso_kg: payload.peso_kg, p_fecha: payload.fecha,
+    p_origen: 'nacimiento',
   });
-  if (nacErr) return { error: nacErr.message };
-
-  const { error: evErr } = await supabase.from('Agrosense_animal_eventos').insert({
-    animal_id: animal.id, finca_id: payload.finca_id, tipo: 'nacimiento',
-    fecha: payload.fecha, peso_kg: payload.peso_kg, finca_origen_id: null,
-    contraparte: null, notas: 'Nació en la finca',
-  });
-  return { error: evErr?.message ?? null };
+  return { error: error?.message ?? null };
 }
 
 export async function getAnimalEventos(animal_id: string): Promise<DbAnimalEvento[]> {
-  const { data } = await supabase.from('Agrosense_animal_eventos').select('*').eq('animal_id', animal_id).order('fecha', { ascending: true });
+  const { data } = await supabase.from('animal_eventos').select('*').eq('animal_id', animal_id).order('fecha', { ascending: true });
   return (data ?? []) as DbAnimalEvento[];
 }
 
@@ -338,87 +375,321 @@ export async function registrarCompraAnimal(payload: {
   raza: string; sexo: string; categoria: string; peso_kg: number | null;
   origen: 'nacio' | 'comprado'; proveedor: string | null; fecha: string;
 }): Promise<{ error: string | null }> {
-  const { data: animal, error: animalErr } = await supabase.from('Agrosense_animales').insert({
-    finca_id: payload.finca_id, potrero_id: payload.potrero_id,
-    nombre: payload.nombre.trim() || null, arete: payload.arete, rfid: payload.arete,
-    raza: payload.raza, sexo: payload.sexo, categoria: payload.categoria,
-    estado: 'green', estado_txt: 'Sano · recién registrado',
-    peso_actual: payload.peso_kg, gdp: null, gdp_delta: null, dias_potrero: 0, activo: true,
-  }).select('id').single();
-  if (animalErr) return { error: animalErr.message };
-
-  const { error: evErr } = await supabase.from('Agrosense_animal_eventos').insert({
-    animal_id: animal.id, finca_id: payload.finca_id,
-    tipo: payload.origen === 'nacio' ? 'nacimiento' : 'compra',
-    fecha: payload.fecha, peso_kg: payload.peso_kg, finca_origen_id: null,
-    contraparte: payload.origen === 'comprado' ? payload.proveedor : null,
-    notas: payload.origen === 'nacio' ? 'Nació en la finca' : null,
+  const { error } = await supabase.rpc('registrar_animal', {
+    p_finca_id: payload.finca_id, p_arete: payload.arete, p_nombre: payload.nombre,
+    p_raza: payload.raza, p_sexo: payload.sexo, p_categoria: payload.categoria,
+    p_potrero_id: payload.potrero_id, p_peso_kg: payload.peso_kg, p_fecha: payload.fecha,
+    p_origen: payload.origen === 'nacio' ? 'nacimiento' : 'compra',
+    p_contraparte: payload.origen === 'comprado' ? payload.proveedor : null,
   });
-  return { error: evErr?.message ?? null };
+  return { error: error?.message ?? null };
 }
 
 export async function registrarVenta(payload: {
   animal_id: string; finca_id: string; fecha: string; peso_kg: number | null;
-  comprador: string | null; notas: string | null;
+  comprador: string | null; notas: string | null; precio_kg?: number | null;
 }): Promise<{ error: string | null }> {
-  const { error: evErr } = await supabase.from('Agrosense_animal_eventos').insert({
-    animal_id: payload.animal_id, finca_id: payload.finca_id, tipo: 'venta',
-    fecha: payload.fecha, peso_kg: payload.peso_kg, finca_origen_id: null,
-    contraparte: payload.comprador, notas: payload.notas,
+  const { error } = await supabase.rpc('registrar_venta', {
+    p_animal_id: payload.animal_id, p_fecha: payload.fecha, p_peso_kg: payload.peso_kg,
+    p_precio_kg: payload.precio_kg ?? null, p_comprador: payload.comprador, p_notas: payload.notas,
   });
-  if (evErr) return { error: evErr.message };
-
-  const { error: animalErr } = await supabase.from('Agrosense_animales').update({
-    activo: false, updated_at: new Date().toISOString(),
-  }).eq('id', payload.animal_id);
-  return { error: animalErr?.message ?? null };
+  return { error: error?.message ?? null };
 }
 
 export async function trasladarAnimal(payload: {
   animal_id: string; finca_origen_id: string; finca_destino_id: string; fecha: string; notas: string | null;
 }): Promise<{ error: string | null }> {
-  const { error: evErr } = await supabase.from('Agrosense_animal_eventos').insert({
-    animal_id: payload.animal_id, finca_id: payload.finca_destino_id, tipo: 'traslado',
-    fecha: payload.fecha, peso_kg: null, finca_origen_id: payload.finca_origen_id,
-    contraparte: null, notas: payload.notas,
+  const { error } = await supabase.rpc('trasladar_animal', {
+    p_animal_id: payload.animal_id, p_finca_destino_id: payload.finca_destino_id,
+    p_fecha: payload.fecha, p_notas: payload.notas,
   });
-  if (evErr) return { error: evErr.message };
-
-  const { error: animalErr } = await supabase.from('Agrosense_animales').update({
-    finca_id: payload.finca_destino_id, potrero_id: null, updated_at: new Date().toISOString(),
-  }).eq('id', payload.animal_id);
-  return { error: animalErr?.message ?? null };
+  return { error: error?.message ?? null };
 }
 
 export async function getBajas(finca_id: string): Promise<DbBaja[]> {
-  const { data } = await supabase.from('Agrosense_bajas').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false });
+  const { data } = await supabase.from('bajas').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false });
   return (data ?? []) as DbBaja[];
 }
 
 export async function registrarBaja(payload: { finca_id: string; animal_id: string; fecha: string; causa: string }): Promise<{ error: string | null }> {
-  const { error: bajaErr } = await supabase.from('Agrosense_bajas').insert(payload);
-  if (bajaErr) return { error: bajaErr.message };
-
-  const { error: evErr } = await supabase.from('Agrosense_animal_eventos').insert({
-    animal_id: payload.animal_id, finca_id: payload.finca_id, tipo: 'baja',
-    fecha: payload.fecha, peso_kg: null, finca_origen_id: null,
-    contraparte: payload.causa, notas: null,
+  const { error } = await supabase.rpc('registrar_baja', {
+    p_animal_id: payload.animal_id, p_fecha: payload.fecha, p_causa: payload.causa,
   });
-  if (evErr) return { error: evErr.message };
-
-  const { error: animalErr } = await supabase.from('Agrosense_animales').update({ activo: false, updated_at: new Date().toISOString() }).eq('id', payload.animal_id);
-  return { error: animalErr?.message ?? null };
+  return { error: error?.message ?? null };
 }
 
-export async function registrarPesaje(payload: Omit<DbPesaje, 'id'>): Promise<DbPesaje | null> {
-  const { data } = await supabase.from('Agrosense_pesajes').insert(payload).select().single();
-  if (data) {
-    // Update animal's current weight
-    await supabase.from('Agrosense_animales').update({
-      peso_actual: payload.peso_kg,
-      gdp: payload.gdp_calculado,
-      updated_at: new Date().toISOString(),
-    }).eq('id', payload.animal_id);
+// Guarda el pesaje y calcula la GDP en la base con los días reales desde el pesaje anterior.
+export async function registrarPesaje(payload: {
+  animal_id: string; peso_kg: number; fecha?: string; sesion_id?: string | null;
+}): Promise<{ data: DbPesaje | null; error: string | null }> {
+  const { data, error } = await supabase.rpc('registrar_pesaje', {
+    p_animal_id: payload.animal_id, p_peso_kg: payload.peso_kg,
+    p_fecha: payload.fecha ?? new Date().toISOString(), p_sesion_id: payload.sesion_id ?? null,
+  });
+  return { data: (data as DbPesaje | null) ?? null, error: error?.message ?? null };
+}
+
+// ---------- Onboarding de clientes nuevos ----------
+
+export type OnboardingPaso = 'contrasena' | 'finca' | 'potreros' | 'animales' | 'equipo' | 'lector' | 'listo';
+
+export type DbOrgOnboarding = {
+  id: string; nombre: string; origen: 'manual' | 'hotmart';
+  onboarding_paso: OnboardingPaso; onboarding_completado_at: string | null;
+};
+
+export type DbPlan = { id: string; codigo: string; nombre: string; max_fincas: number | null; max_animales: number | null };
+
+/** Organización de la que soy dueño y que aún no termina el onboarding (o null). */
+export async function getMiOnboardingPendiente(): Promise<DbOrgOnboarding | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: mias } = await supabase.from('organizacion_miembros').select('organizacion_id').eq('auth_user_id', user.id);
+  const ids = (mias ?? []).map(m => m.organizacion_id as string);
+  if (!ids.length) return null;
+  const { data } = await supabase.from('organizaciones')
+    .select('id, nombre, origen, onboarding_paso, onboarding_completado_at')
+    .in('id', ids).is('onboarding_completado_at', null).order('created_at').limit(1);
+  return (data?.[0] ?? null) as DbOrgOnboarding | null;
+}
+
+export async function guardarPasoOnboarding(org_id: string, paso: OnboardingPaso, extra?: { nombre?: string }): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('organizaciones').update({
+    onboarding_paso: paso,
+    ...(paso === 'listo' ? { onboarding_completado_at: new Date().toISOString() } : {}),
+    ...(extra?.nombre ? { nombre: extra.nombre } : {}),
+  }).eq('id', org_id);
+  return { error: error?.message ?? null };
+}
+
+export async function getFincasDeOrganizacion(org_id: string): Promise<DbFinca[]> {
+  const { data } = await supabase.from('fincas').select('*').eq('organizacion_id', org_id).eq('activa', true).order('created_at');
+  return (data ?? []) as DbFinca[];
+}
+
+export async function getPlanes(): Promise<DbPlan[]> {
+  const { data } = await supabase.from('planes').select('id, codigo, nombre, max_fincas, max_animales').eq('activo', true).order('nombre');
+  return (data ?? []) as DbPlan[];
+}
+
+async function postConSesion(url: string, body: unknown): Promise<{ data: Record<string, unknown> | null; error: string | null }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session?.access_token ?? ''}` },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) return { data: null, error: json.error ?? `Error ${res.status}` };
+  return { data: json, error: null };
+}
+
+/** El dueño invita a alguien de su equipo a la finca; le llega un correo para entrar. */
+export function invitarMiembro(payload: { finca_id: string; email: string; nombre: string; rol: 'admin' | 'contable' | 'vaquero' }) {
+  return postConSesion('/api/onboarding/invitar', payload);
+}
+
+/** Superadmin: alta de un cliente vendido por fuera de Hotmart. */
+export function crearClienteConInvitacion(payload: { organizacion: string; nombre: string; email: string; telefono?: string; nit?: string; plan_id?: string }) {
+  return postConSesion('/api/admin/nuevo-cliente', payload);
+}
+
+// ---------- Telegram ----------
+
+export type DbTelegramVinculo = {
+  id: string; membresia_id: string; finca_id: string; chat_id: number;
+  telegram_username: string | null; recibir_reportes: boolean; activo: boolean;
+};
+
+export async function getMiVinculoTelegram(membresia_id: string): Promise<DbTelegramVinculo | null> {
+  const { data } = await supabase.from('telegram_vinculos').select('*').eq('membresia_id', membresia_id).maybeSingle();
+  return (data ?? null) as DbTelegramVinculo | null;
+}
+
+export async function generarLinkTelegram(finca_id: string, membresia_id?: string): Promise<{ url: string | null; error: string | null }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { url: null, error: 'Sesión vencida, vuelva a ingresar' };
+  const res = await fetch('/api/telegram/vincular', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${session.access_token}` },
+    body: JSON.stringify({ finca_id, membresia_id }),
+  });
+  const body = await res.json().catch(() => ({})) as { url?: string; error?: string };
+  return { url: body.url ?? null, error: res.ok ? null : (body.error ?? 'No se pudo generar el enlace') };
+}
+
+export async function actualizarVinculoTelegram(id: string, payload: { recibir_reportes?: boolean; activo?: boolean }): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('telegram_vinculos').update(payload).eq('id', id);
+  return { error: error?.message ?? null };
+}
+
+export async function desconectarTelegram(id: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('telegram_vinculos').delete().eq('id', id);
+  return { error: error?.message ?? null };
+}
+
+// Membresías de la finca que ya tienen Telegram conectado (owner/admin las pueden ver por RLS).
+export async function getConectadosTelegram(finca_id: string): Promise<Set<string>> {
+  const { data } = await supabase.from('telegram_vinculos').select('membresia_id').eq('finca_id', finca_id).eq('activo', true);
+  return new Set((data ?? []).map(r => r.membresia_id as string));
+}
+
+// ---------- Sinigán (fase 1: datos espejo y listas para guía) ----------
+
+export type GuiaEstado = 'borrador' | 'emitida' | 'cerrada' | 'anulada';
+export type GuiaMotivo = 'venta' | 'traslado' | 'feria' | 'sacrificio' | 'otro';
+
+export type DbGuiaAnimal = {
+  id: string; guia_id: string; animal_id: string | null; din: string | null; chapeta_leida: string;
+};
+
+export type DbGuia = {
+  id: string; finca_id: string; estado: GuiaEstado; motivo: GuiaMotivo; fecha: string;
+  numero_guia: string | null; numero_bono: string | null;
+  ruv_destino: string | null; destino_nombre: string | null;
+  transportador: string | null; placa: string | null; notas: string | null;
+  created_at: string;
+  guia_animales?: DbGuiaAnimal[];
+};
+
+export async function actualizarPredioSinigan(finca_id: string, payload: {
+  ruv: string; departamento: string; municipio: string; tipo_doc: string; documento: string;
+}): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('actualizar_predio_sinigan', {
+    p_finca_id: finca_id, p_ruv: payload.ruv, p_departamento: payload.departamento,
+    p_municipio: payload.municipio, p_tipo_doc: payload.tipo_doc, p_documento: payload.documento,
+  });
+  return { error: error?.message ?? null };
+}
+
+export async function actualizarAnimalSinigan(animal_id: string, payload: {
+  din?: string | null; especie?: 'bovino' | 'bufalino'; fecha_nacimiento?: string | null;
+}): Promise<{ error: string | null }> {
+  const limpio: Record<string, unknown> = {};
+  if (payload.din !== undefined) limpio.din = payload.din?.replace(/\s+/g, '') || null;
+  if (payload.especie !== undefined) limpio.especie = payload.especie;
+  if (payload.fecha_nacimiento !== undefined) limpio.fecha_nacimiento = payload.fecha_nacimiento || null;
+  const { error } = await supabase.from('animales').update(limpio).eq('id', animal_id);
+  if (error?.code === '23505') return { error: 'Ese DIN ya está asignado a otro animal activo.' };
+  return { error: error?.message ?? null };
+}
+
+export async function getGuias(finca_id: string): Promise<DbGuia[]> {
+  const { data } = await supabase
+    .from('guias_movilizacion')
+    .select('*, guia_animales(*)')
+    .eq('finca_id', finca_id)
+    .order('created_at', { ascending: false })
+    .limit(30);
+  return (data ?? []) as DbGuia[];
+}
+
+export async function crearGuiaBorrador(payload: {
+  finca_id: string; motivo: GuiaMotivo; fecha: string;
+  ruv_destino: string | null; destino_nombre: string | null;
+  transportador: string | null; placa: string | null; notas: string | null;
+  animales: { animal_id: string | null; din: string | null; chapeta_leida: string }[];
+}): Promise<{ error: string | null; id: string | null }> {
+  const { animales, ...guia } = payload;
+  const { data, error } = await supabase.from('guias_movilizacion').insert(guia).select('id').single();
+  if (error || !data) return { error: error?.message ?? 'No se pudo guardar la lista', id: null };
+  if (animales.length) {
+    const { error: e2 } = await supabase.from('guia_animales').insert(
+      animales.map(a => ({ ...a, guia_id: data.id, finca_id: payload.finca_id })),
+    );
+    if (e2) {
+      await supabase.from('guias_movilizacion').delete().eq('id', data.id);
+      return { error: e2.message, id: null };
+    }
   }
-  return data;
+  return { error: null, id: data.id };
+}
+
+export async function marcarGuiaEmitida(id: string, numero_guia: string, numero_bono: string | null): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('guias_movilizacion')
+    .update({ estado: 'emitida', numero_guia: numero_guia.trim(), numero_bono: numero_bono?.trim() || null })
+    .eq('id', id);
+  return { error: error?.message ?? null };
+}
+
+export async function anularGuia(id: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('guias_movilizacion').update({ estado: 'anulada' }).eq('id', id);
+  return { error: error?.message ?? null };
+}
+
+// ---------- Potreros y análisis de suelo ----------
+
+export async function crearPotrero(payload: { finca_id: string; nombre: string; hectareas: number | null; capacidad?: number; poligono?: [number, number][] | null }): Promise<{ error: string | null; id: string | null }> {
+  const { data, error } = await supabase.from('potreros').insert(payload).select('id').single();
+  return { error: error?.message ?? null, id: data?.id ?? null };
+}
+
+export async function actualizarPotrero(id: string, payload: { nombre?: string; hectareas?: number | null; poligono?: [number, number][] | null }): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('potreros').update(payload).eq('id', id);
+  return { error: error?.message ?? null };
+}
+
+export type DbAnalisisSuelo = {
+  id: string; finca_id: string; potrero_id: string;
+  fecha: string; laboratorio: string | null;
+  ph: number | null; materia_organica: number | null; nitrogeno: number | null;
+  fosforo: number | null; potasio: number | null;
+  calcio: number | null; magnesio: number | null; aluminio: number | null;
+  textura: string | null; notas: string | null; pdf_path: string | null;
+  created_at: string;
+};
+
+export async function getAnalisisSuelo(finca_id: string): Promise<DbAnalisisSuelo[]> {
+  const { data } = await supabase.from('analisis_suelo').select('*').eq('finca_id', finca_id).order('fecha', { ascending: false });
+  return (data ?? []) as DbAnalisisSuelo[];
+}
+
+export async function crearAnalisisSuelo(
+  payload: Omit<DbAnalisisSuelo, 'id' | 'pdf_path' | 'created_at'>,
+  pdfFile: File | null,
+): Promise<{ error: string | null }> {
+  let pdf_path: string | null = null;
+  if (pdfFile) {
+    const limpio = pdfFile.name.replace(/[^\w.\-]+/g, '_');
+    const path = `${payload.finca_id}/suelos/${Date.now()}-${limpio}`;
+    const { error: uploadErr } = await supabase.storage.from('agrosense-ica').upload(path, pdfFile, { contentType: 'application/pdf' });
+    if (uploadErr) return { error: uploadErr.message };
+    pdf_path = path;
+  }
+  const { error } = await supabase.from('analisis_suelo').insert({ ...payload, pdf_path });
+  return { error: error?.message ?? null };
+}
+
+export async function eliminarAnalisisSuelo(id: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('analisis_suelo').delete().eq('id', id);
+  return { error: error?.message ?? null };
+}
+
+export async function getSueloPdfUrl(pdf_path: string): Promise<string | null> {
+  const { data, error } = await supabase.storage.from('agrosense-ica').createSignedUrl(pdf_path, 60 * 10);
+  if (error) return null;
+  return data.signedUrl;
+}
+
+// ---------- Puntos del mapa (corral, báscula, casa, bebedero) ----------
+
+export type TipoPunto = 'corral' | 'bascula' | 'casa' | 'bebedero' | 'otro';
+export type DbPuntoFinca = {
+  id: string; finca_id: string; tipo: TipoPunto; nombre: string | null;
+  latitud: number; longitud: number; created_at: string;
+};
+
+export async function getPuntosFinca(finca_id: string): Promise<DbPuntoFinca[]> {
+  const { data } = await supabase.from('puntos_finca').select('*').eq('finca_id', finca_id).order('created_at');
+  return (data ?? []) as DbPuntoFinca[];
+}
+
+export async function crearPuntoFinca(payload: Omit<DbPuntoFinca, 'id' | 'created_at'>): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('puntos_finca').insert(payload);
+  return { error: error?.message ?? null };
+}
+
+export async function eliminarPuntoFinca(id: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('puntos_finca').delete().eq('id', id);
+  return { error: error?.message ?? null };
 }

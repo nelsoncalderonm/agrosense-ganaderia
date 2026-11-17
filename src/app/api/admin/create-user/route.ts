@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   if (callerErr || !callerData.user) return Response.json({ error: 'No autenticado' }, { status: 401 });
 
   const { data: superadminRow } = await supabaseAdmin
-    .from('Agrosense_superadmins')
+    .from('superadmins')
     .select('auth_user_id')
     .eq('auth_user_id', callerData.user.id)
     .maybeSingle();
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     return Response.json({ error: `rol debe ser uno de: ${VALID_ROLES.join(', ')}` }, { status: 400 });
   }
 
-  const { data: fincaRow } = await supabaseAdmin.from('Agrosense_fincas').select('id').eq('id', finca_id).maybeSingle();
+  const { data: fincaRow } = await supabaseAdmin.from('fincas').select('id').eq('id', finca_id).maybeSingle();
   if (!fincaRow) return Response.json({ error: 'Finca no encontrada' }, { status: 404 });
 
   let userId: string;
@@ -73,7 +73,7 @@ export async function POST(request: Request) {
   }
 
   const { error: membresiaErr } = await supabaseAdmin
-    .from('Agrosense_membresias')
+    .from('membresias')
     .upsert({ auth_user_id: userId, finca_id, nombre, rol }, { onConflict: 'auth_user_id,finca_id' });
 
   if (membresiaErr) return Response.json({ error: membresiaErr.message }, { status: 500 });

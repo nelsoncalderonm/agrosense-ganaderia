@@ -20,7 +20,7 @@ const CAT_LABEL: Record<Animal['cat'], string> = { Levante: 'Levante', Ceba: 'Ce
 function pdfHeader(doc: jsPDF, titulo: string, fincaNombre: string, subtitulo?: string) {
   doc.setFontSize(16);
   doc.setFont('helvetica', 'bold');
-  doc.text('AgroSense — ' + titulo, 40, 44);
+  doc.text('Ganado al Día — ' + titulo, 40, 44);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100);
@@ -39,12 +39,12 @@ function generarInventarioPdf(fincaNombre: string, animals: Animal[]) {
   pdfHeader(doc, 'Inventario de animales', fincaNombre, `${animals.length} animales · corte al ${new Date().toLocaleDateString('es-CO')}`);
   autoTable(doc, {
     startY: 105,
-    head: [['Arete', 'Nombre', 'Raza', 'Sexo', 'Categoría', 'Peso (kg)', 'GDP (kg/d)', 'Potrero', 'Días', 'Estado']],
+    head: [['Arete', 'Raza', 'Sexo', 'Categoría', 'Peso (kg)', 'GDP (kg/d)', 'Potrero', 'Días', 'Estado']],
     body: animals.map(a => [
-      a.arete, a.nombre, a.raza, a.sexo, CAT_LABEL[a.cat],
+      a.arete, a.raza, a.sexo, CAT_LABEL[a.cat],
       a.peso.toString(), a.gdp.toFixed(2), a.potrero, a.dias.toString(), a.estadoCorto,
     ]),
-    styles: { fontSize: 8 },
+    styles: { fontSize: 13 },
     headStyles: { fillColor: [21, 163, 74] },
   });
   downloadPdf(doc, `inventario-${fincaNombre.replace(/\s+/g, '_')}-${new Date().toISOString().slice(0, 10)}.pdf`);
@@ -69,7 +69,7 @@ function generarMovimientosPdf(fincaNombre: string, gastos: DbGasto[], movimient
     startY: 115,
     head: [['Fecha', 'Concepto', 'Vía', 'Monto']],
     body: gastosF.map(g => [g.fecha.slice(0, 10), g.concepto, g.via, money(g.monto)]),
-    styles: { fontSize: 8 },
+    styles: { fontSize: 13 },
     headStyles: { fillColor: [220, 38, 38] },
     didDrawPage: () => { doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.text('Gastos', 40, 108); },
   });
@@ -85,7 +85,7 @@ function generarMovimientosPdf(fincaNombre: string, gastos: DbGasto[], movimient
       m.fecha.slice(0, 10), m.tipo, m.contraparte ?? '—', m.animales_count.toString(),
       money(m.tipo === 'venta' ? (m.total_cop ?? 0) : (m.costo_cop ?? 0)),
     ]),
-    styles: { fontSize: 8 },
+    styles: { fontSize: 13 },
     headStyles: { fillColor: [37, 99, 235] },
   });
 
@@ -100,42 +100,42 @@ export default function ReportesScreen({ onOpenDrawer, role, fincaNombre, animal
   const [hasta, setHasta] = useState(hoy);
 
   const inp: React.CSSProperties = {
-    height: 42, border: '1px solid #C5D2C0', borderRadius: 4,
-    padding: '0 12px', fontSize: 14, background: '#fff', outline: 'none',
-    fontFamily: 'inherit', color: '#1A2B1A', boxSizing: 'border-box',
+    height: 42, border: '1px solid #8FA38A', borderRadius: 4,
+    padding: '0 12px', fontSize: 18, background: '#fff', outline: 'none',
+    fontFamily: 'inherit', color: '#0F1A0F', boxSizing: 'border-box',
   };
   const lbl: React.CSSProperties = {
-    fontSize: 10, color: '#6E8A6E', fontWeight: 700, letterSpacing: '.5px',
+    fontSize: 14, color: '#3A4D3A', fontWeight: 700, letterSpacing: '.5px',
     marginBottom: 4, display: 'block',
   };
   const card: React.CSSProperties = {
-    background: '#fff', border: '1px solid #E1E8DD', borderRadius: 6, padding: 18,
+    background: '#fff', border: '1px solid #B9C6B4', borderRadius: 6, padding: 18,
   };
 
   return (
     <div style={{ paddingBottom: 90 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 16px 0' }}>
         <button onClick={onOpenDrawer} className="ag-hamburger" style={{ width: 40, height: 40, marginLeft: -7, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, background: 'none', border: 'none' }}>
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A2B1A" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0F1A0F" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
-        <div style={{ fontWeight: 800, fontSize: 22 }}>Reportes</div>
+        <div style={{ fontWeight: 800, fontSize: 25 }}>Reportes</div>
       </div>
 
       <div className="ag-list-grid" style={{ padding: '16px 16px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={card}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
             <div style={{ width: 36, height: 36, borderRadius: 8, background: '#DCFCE7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#15A34A" strokeWidth="1.8" strokeLinecap="round"><ellipse cx="12" cy="14" rx="7" ry="5"/><path d="M8 9 Q7 6 5 5M16 9 Q17 6 19 5"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#15803D" strokeWidth="1.8" strokeLinecap="round"><ellipse cx="12" cy="14" rx="7" ry="5"/><path d="M8 9 Q7 6 5 5M16 9 Q17 6 19 5"/></svg>
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 14.5 }}>Inventario de animales</div>
-              <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, color: '#9DB39D' }}>{animals.length} animales activos · foto actual del hato</div>
+              <div style={{ fontWeight: 700, fontSize: 18 }}>Inventario de animales</div>
+              <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 15, color: '#4A5E4A' }}>{animals.length} animales activos · foto actual del hato</div>
             </div>
           </div>
           <button
             onClick={() => generarInventarioPdf(fincaNombre, animals)}
             disabled={animals.length === 0}
-            style={{ width: '100%', height: 44, border: 'none', borderRadius: 4, background: animals.length === 0 ? '#6E8A6E' : '#15A34A', color: '#fff', fontWeight: 800, fontSize: 13, cursor: animals.length === 0 ? 'default' : 'pointer' }}
+            style={{ width: '100%', height: 44, border: 'none', borderRadius: 4, background: animals.length === 0 ? '#3A4D3A' : '#15803D', color: '#fff', fontWeight: 800, fontSize: 17, cursor: animals.length === 0 ? 'default' : 'pointer' }}
           >
             Generar PDF
           </button>
@@ -145,11 +145,11 @@ export default function ReportesScreen({ onOpenDrawer, role, fincaNombre, animal
         <div style={card}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
             <div style={{ width: 36, height: 36, borderRadius: 8, background: '#DBEAFE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" strokeWidth="1.8" strokeLinecap="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" strokeWidth="1.8" strokeLinecap="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
             </div>
             <div>
-              <div style={{ fontWeight: 700, fontSize: 14.5 }}>Movimientos financieros</div>
-              <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 11, color: '#9DB39D' }}>Gastos, compras y ventas del período</div>
+              <div style={{ fontWeight: 700, fontSize: 18 }}>Movimientos financieros</div>
+              <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 15, color: '#4A5E4A' }}>Gastos, compras y ventas del período</div>
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
@@ -162,14 +162,14 @@ export default function ReportesScreen({ onOpenDrawer, role, fincaNombre, animal
           </div>
           <button
             onClick={() => generarMovimientosPdf(fincaNombre, gastos, movimientos, desde, hasta)}
-            style={{ width: '100%', height: 44, border: 'none', borderRadius: 4, background: '#2563EB', color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
+            style={{ width: '100%', height: 44, border: 'none', borderRadius: 4, background: '#1D4ED8', color: '#fff', fontWeight: 800, fontSize: 17, cursor: 'pointer' }}
           >
             Generar PDF
           </button>
         </div>
         ) : (
-        <div style={{ ...card, textAlign: 'center', color: '#9DB39D' }}>
-          <div style={{ fontSize: 12.5, fontFamily: 'var(--font-jetbrains)' }}>Tu rol no tiene acceso al reporte financiero.</div>
+        <div style={{ ...card, textAlign: 'center', color: '#4A5E4A' }}>
+          <div style={{ fontSize: 16, fontFamily: 'var(--font-jetbrains)' }}>Tu rol no tiene acceso al reporte financiero.</div>
         </div>
         )}
       </div>

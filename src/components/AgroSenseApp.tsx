@@ -4,11 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Animal, Tab, RoleKey, CAT, ESTADO } from '@/data/agrosense';
 import {
-  supabase, getFincas, getPotreros, getAnimales, getPesajesRecientes,
+  supabase, getFincas, getPotreros, getAnimales,
   getAlertas, getEventos, getProveedores, getClientes, getGastos, getMovimientos,
   getVacunaciones, getNacimientos, getBajas, getMembresiasFinca,
-  registrarPesaje, getMisMembresias, getIsSuperadmin,
-  DbFinca, DbPotrero, DbAnimal, DbAlerta, DbEvento, DbProveedor, DbCliente, DbGasto, DbMovimiento, DbPesaje, DbMembresia,
+  getMisMembresias, getIsSuperadmin, getMiOnboardingPendiente, DbOrgOnboarding, getRetiros,
+  DbRetiro, DbFinca, DbPotrero, DbAnimal, DbAlerta, DbEvento, DbProveedor, DbCliente, DbGasto, DbMovimiento, DbMembresia,
   DbVacunacion, DbNacimiento, DbBaja,
 } from '@/lib/supabase';
 import InicioScreen from './screens/InicioScreen';
@@ -19,10 +19,34 @@ import FinanzasScreen from './screens/FinanzasScreen';
 import AdminScreen from './screens/AdminScreen';
 import ReportesScreen from './screens/ReportesScreen';
 import AjustesScreen from './screens/AjustesScreen';
+import SiniganScreen from './screens/SiniganScreen';
+import PotrerosScreen from './screens/PotrerosScreen';
+import ClimaScreen from './screens/ClimaScreen';
+import ClimaMini from './ui/ClimaMini';
 import Drawer from './ui/Drawer';
+import SoporteChat from './soporte/SoporteChat';
 import AnimalProfile from './ui/AnimalProfile';
 import FincaPicker from './ui/FincaPicker';
 import LoginScreen from './auth/LoginScreen';
+import OnboardingWizard from './onboarding/OnboardingWizard';
+import EstadoSenal from './ui/EstadoSenal';
+import { useSincronizacion } from '@/hooks/useSincronizacion';
+import { guardarCopia, leerCopia } from '@/lib/offline/copias';
+import { aplicarPendientes } from '@/lib/offline/proyeccion';
+import { sesionGuardada } from '@/lib/offline/sesion';
+import { registrarPesajeOffline } from '@/lib/offline/acciones';
+import { resumenVenta, retirosPendientes, retirosPorAnimal } from '@/lib/venta';
+import { ListosParaVender, NoEngordan } from './ui/VentaGanado';
+
+// Copia de una finca guardada en el celular para trabajar sin señal.
+type CopiaFinca = {
+  potreros: DbPotrero[]; animales: DbAnimal[]; alertas: DbAlerta[]; eventos: DbEvento[];
+  proveedores: DbProveedor[]; clientes: DbCliente[]; gastos: DbGasto[]; movimientos: DbMovimiento[];
+  vacunaciones: DbVacunacion[]; nacimientos: DbNacimiento[]; bajas: DbBaja[]; miembros: DbMembresia[];
+  retiros?: DbRetiro[];   // las copias guardadas antes de esta versión no lo traen
+};
+type CopiaInicio = { fincas: DbFinca[]; membresias: DbMembresia[]; superadmin: boolean };
+const sinRed = () => typeof navigator !== 'undefined' && navigator.onLine === false;
 
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: 'inicio',   label: 'Inicio',   icon: <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg> },
@@ -35,7 +59,8 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
 // Convert DB types to app types
 function dbAnimalToAnimal(a: DbAnimal, potreroNombre: string): Animal {
   return {
-    nombre: a.nombre ?? a.arete,
+    // El ganado no lleva nombre: se identifica por el número de arete.
+    nombre: a.arete,
     id: `CO·${a.arete.replace('·', '0')}`,
     dbId: a.id,
     arete: a.arete,
@@ -99,6 +124,25 @@ function dbFincaToFinca(
   };
 }
 
+async function descargarFinca(finca_id: string): Promise<CopiaFinca> {
+  const [potreros, animales, alertas, eventos, proveedores, clientes, gastos, movimientos, vacunaciones, nacimientos, bajas, miembros, retiros] = await Promise.all([
+    getPotreros(finca_id),
+    getAnimales(finca_id),
+    getAlertas(finca_id),
+    getEventos(finca_id),
+    getProveedores(finca_id),
+    getClientes(finca_id),
+    getGastos(finca_id),
+    getMovimientos(finca_id),
+    getVacunaciones(finca_id),
+    getNacimientos(finca_id),
+    getBajas(finca_id),
+    getMembresiasFinca(finca_id),
+    getRetiros(finca_id),
+  ]);
+  return { potreros, animales, alertas, eventos, proveedores, clientes, gastos, movimientos, vacunaciones, nacimientos, bajas, miembros, retiros };
+}
+
 export default function AgroSenseApp() {
   const [tab, setTab]           = useState<Tab>('inicio');
   const [moneda, setMoneda]     = useState<'COP'|'USD'>('COP');
@@ -112,13 +156,15 @@ export default function AgroSenseApp() {
   const [authChecked, setAuthChecked] = useState(false);
   const [membresias, setMembresias] = useState<DbMembresia[]>([]);
   const [isSuperadmin, setIsSuperadmin] = useState(false);
+  const [onboarding, setOnboarding] = useState<DbOrgOnboarding | null>(null);
+  const [recarga, setRecarga] = useState(0);
 
   // DB state
   const [loading,   setLoading]   = useState(true);
   const [fincas,    setFincas]    = useState<DbFinca[]>([]);
   const [fincaIdx,  setFincaIdx]  = useState(0);
   const [potreros,  setPotreros]  = useState<DbPotrero[]>([]);
-  const [animales,  setAnimales]  = useState<DbAnimal[]>([]);
+  const [animalesServidor, setAnimales] = useState<DbAnimal[]>([]);
   const [alertas,   setAlertas]   = useState<DbAlerta[]>([]);
   const [eventos,   setEventos]   = useState<DbEvento[]>([]);
   const [proveedores, setProveedores] = useState<DbProveedor[]>([]);
@@ -128,50 +174,69 @@ export default function AgroSenseApp() {
   const [vacunaciones, setVacunaciones] = useState<DbVacunacion[]>([]);
   const [nacimientos, setNacimientos] = useState<DbNacimiento[]>([]);
   const [bajas,     setBajas]     = useState<DbBaja[]>([]);
-  const [pendingSync, setPendingSync] = useState(0);
+  const [copiaDel, setCopiaDel] = useState<string | null>(null); // fecha de la copia local en uso
   const [miembrosFinca, setMiembrosFinca] = useState<DbMembresia[]>([]);
+  const [retirosServidor, setRetiros] = useState<DbRetiro[]>([]);
 
   const currentFinca = fincas[fincaIdx];
+  const sync = useSincronizacion();
+  // Lo registrado sin señal se ve de inmediato (animales nuevos, pesos, vendidos fuera).
+  const animales = currentFinca ? aplicarPendientes(animalesServidor, sync.pendientes, currentFinca.id) : animalesServidor;
 
-  const loadFincaData = useCallback(async (finca_id: string) => {
-    const [pot, anim, alt, ev, prov, cli, gas, mov, vac, nac, baj, mie] = await Promise.all([
-      getPotreros(finca_id),
-      getAnimales(finca_id),
-      getAlertas(finca_id),
-      getEventos(finca_id),
-      getProveedores(finca_id),
-      getClientes(finca_id),
-      getGastos(finca_id),
-      getMovimientos(finca_id),
-      getVacunaciones(finca_id),
-      getNacimientos(finca_id),
-      getBajas(finca_id),
-      getMembresiasFinca(finca_id),
-    ]);
-    setPotreros(pot);
-    setAnimales(anim);
-    setAlertas(alt);
-    setEventos(ev);
-    setProveedores(prov);
-    setClientes(cli);
-    setGastos(gas);
-    setMovimientos(mov);
-    setVacunaciones(vac);
-    setNacimientos(nac);
-    setBajas(baj);
-    setMiembrosFinca(mie);
-    setPendingSync(gas.filter(g => g.pendiente_sync).length);
+  // Enlace del QR del televisor: /?vincular_tv=ABC123 abre Ajustes con el código puesto (después de entrar).
+  const [codigoTv] = useState<string | null>(() =>
+    typeof window === 'undefined' ? null : new URL(window.location.href).searchParams.get('vincular_tv'));
+  const [codigoTvAbierto, setCodigoTvAbierto] = useState(false);
+  if (codigoTv && session && !codigoTvAbierto) { setCodigoTvAbierto(true); setTab('ajustes'); }
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('vincular_tv')) return;
+    url.searchParams.delete('vincular_tv');
+    window.history.replaceState(null, '', url.pathname + url.search);
   }, []);
 
+  const aplicarCopia = useCallback((c: CopiaFinca) => {
+    setPotreros(c.potreros);
+    setAnimales(c.animales);
+    setAlertas(c.alertas);
+    setEventos(c.eventos);
+    setProveedores(c.proveedores);
+    setClientes(c.clientes);
+    setGastos(c.gastos);
+    setMovimientos(c.movimientos);
+    setVacunaciones(c.vacunaciones);
+    setNacimientos(c.nacimientos);
+    setBajas(c.bajas);
+    setMiembrosFinca(c.miembros);
+    setRetiros(c.retiros ?? []);
+  }, []);
+
+  const loadFincaData = useCallback(async (finca_id: string) => {
+    try {
+      if (sinRed()) throw new Error('sin señal');
+      const c = await descargarFinca(finca_id);
+      aplicarCopia(c);
+      setCopiaDel(null);
+      void guardarCopia(`finca:${finca_id}`, c);
+    } catch {
+      const copia = await leerCopia<CopiaFinca>(`finca:${finca_id}`);
+      if (copia) { aplicarCopia(copia.datos); setCopiaDel(copia.guardado_en); }
+    }
+  }, [aplicarCopia]);
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => { setSession(data.session); setAuthChecked(true); });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+    supabase.auth.getSession().then(({ data, error }) => {
+      // Sin señal no se puede renovar la sesión: seguimos con la guardada para ver los datos locales.
+      setSession(data.session ?? (error || sinRed() ? sesionGuardada() : null));
+      setAuthChecked(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => setSession(s ?? (sinRed() ? sesionGuardada() : null)));
     return () => sub.subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
     if (!session) return;
-    Promise.all([getFincas(), getMisMembresias(), getIsSuperadmin()]).then(([f, m, superadmin]) => {
+    const usar = ({ fincas: f, membresias: m, superadmin }: CopiaInicio) => {
       setMembresias(m);
       setIsSuperadmin(superadmin);
       const allowed = new Set(m.map(x => x.finca_id));
@@ -179,10 +244,60 @@ export default function AgroSenseApp() {
       setFincas(mine);
       if (mine.length) loadFincaData(mine[0].id).finally(() => setLoading(false));
       else setLoading(false);
-    });
-  }, [session, loadFincaData]);
+    };
+    const clave = `inicio:${session.user.id}`;
+    (async () => {
+      try {
+        if (sinRed()) throw new Error('sin señal');
+        const [f, m, superadmin, ob] = await Promise.all([getFincas(), getMisMembresias(), getIsSuperadmin(), getMiOnboardingPendiente()]);
+        void guardarCopia<CopiaInicio>(clave, { fincas: f, membresias: m, superadmin });
+        setOnboarding(ob);
+        usar({ fincas: f, membresias: m, superadmin });
+      } catch {
+        const copia = await leerCopia<CopiaInicio>(clave);
+        if (copia) usar(copia.datos);
+        else setLoading(false);
+      }
+    })();
+  // Solo recargar cuando cambia el usuario (no en cada refresco de token).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.user.id, recarga, loadFincaData]);
 
-  const handleSignOut = () => { supabase.auth.signOut(); };
+  // Cuando termina de enviar lo pendiente, traemos los datos del servidor (GDP calculada, etc.).
+  const pendientesCount = sync.pendientes.length;
+  const [pendientesAntes, setPendientesAntes] = useState(0);
+  if (pendientesCount !== pendientesAntes) {
+    setPendientesAntes(pendientesCount);
+    if (pendientesCount === 0 && pendientesAntes > 0 && currentFinca && sync.enLinea) void loadFincaData(currentFinca.id);
+  }
+
+  // Vender a tiempo: retiros (incluye tratamientos hechos sin señal), listos para vender y valor del ganado.
+  const retiros = currentFinca
+    ? retirosPorAnimal(animales, [...retirosServidor, ...retirosPendientes(sync.pendientes, currentFinca.id)])
+    : new Map();
+  const venta = resumenVenta(animales, currentFinca?.meta_peso_kg, retiros);
+
+  // Cambios de la finca (meta de peso, precio): se vuelve a leer la finca además de sus datos.
+  const recargarFinca = async () => {
+    if (!currentFinca) return;
+    try {
+      const f = await getFincas();
+      setFincas(prev => prev.map(x => f.find(y => y.id === x.id) ?? x));
+    } catch { /* sin señal: se queda la que hay */ }
+    await loadFincaData(currentFinca.id);
+  };
+
+  const handleSignOut = () => {
+    if (sync.pendientes.length && !window.confirm(`Hay ${sync.pendientes.length} registros sin enviar. Si cierras sesión se quedan en este celular hasta que vuelvas a entrar. ¿Cerrar sesión?`)) return;
+    supabase.auth.signOut();
+  };
+
+  // Vuelve a leer las fincas (p. ej. tras guardar la ubicación) sin cambiar la finca elegida.
+  const recargarFincas = useCallback(async () => {
+    const f = await getFincas();
+    setFincas(prev => prev.map(x => f.find(y => y.id === x.id) ?? x));
+  }, []);
+
 
   const handleSelectFinca = async (idx: number) => {
     setFincaIdx(idx);
@@ -191,23 +306,20 @@ export default function AgroSenseApp() {
     setLoading(false);
   };
 
+  // Recarga la finca (datos del predio para Sinigán) y sus datos.
+  const handleRefrescarFincas = async (finca_id: string) => {
+    const f = await getFincas();
+    setFincas(prev => prev.map(x => f.find(n => n.id === x.id) ?? x));
+    await loadFincaData(finca_id);
+  };
+
   const handleRegistrarPesaje = async (animal: Animal, pesoKg: number) => {
-    const dbAnimal = animales.find(a => a.arete === animal.arete);
-    if (!dbAnimal || !currentFinca) return;
-    const diasPeriodo = 14;
-    const gdp = dbAnimal.peso_actual ? (pesoKg - dbAnimal.peso_actual) / diasPeriodo : 0;
-    await registrarPesaje({
-      animal_id: dbAnimal.id,
-      finca_id: currentFinca.id,
-      sesion_id: null as unknown as undefined,
-      usuario_id: null as unknown as undefined,
-      peso_kg: pesoKg,
-      gdp_calculado: Math.round(gdp * 1000) / 1000,
-      dias_periodo: diasPeriodo,
-      pendiente_sync: false,
-      fecha: new Date().toISOString(),
-    } as Omit<DbPesaje, 'id'>);
-    await loadFincaData(currentFinca.id);
+    if (!currentFinca) return;
+    const { error, pendiente } = await registrarPesajeOffline({
+      finca_id: currentFinca.id, animal: { dbId: animal.dbId, nombre: animal.nombre, arete: animal.arete }, peso_kg: pesoKg,
+    });
+    if (error) { window.alert(`No se pudo guardar el pesaje: ${error}`); return; }
+    if (!pendiente) await loadFincaData(currentFinca.id);
   };
 
   // Map DB data to app-layer types
@@ -218,12 +330,13 @@ export default function AgroSenseApp() {
   const myMembresia = membresias.find(m => m.finca_id === currentFinca?.id);
   const currentRole: RoleKey = myMembresia?.rol ?? (isSuperadmin ? 'owner' : 'vaquero');
   const displayName = myMembresia?.nombre ?? session?.user.email ?? '';
+  const abrirAnimal = (dbId: string) => { const a = appAnimals.find(x => x.dbId === dbId); if (a) setSelectedAnimal(a); };
 
   const Spinner = (msg: string) => (
     <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#EEF2EC' }}>
       <div style={{ textAlign:'center' }}>
-        <div style={{ width:48, height:48, borderRadius:'50%', border:'3px solid #15A34A', borderTopColor:'transparent', animation:'agSweep 0.8s linear infinite', margin:'0 auto' }}/>
-        <div style={{ fontFamily:'var(--font-jetbrains)', fontSize:12, color:'#6E8A6E', marginTop:14, letterSpacing:'.5px' }}>{msg}</div>
+        <div style={{ width:48, height:48, borderRadius:'50%', border:'3px solid #15803D', borderTopColor:'transparent', animation:'agSweep 0.8s linear infinite', margin:'0 auto' }}/>
+        <div style={{ fontFamily:'var(--font-jetbrains)', fontSize:16, color:'#3A4D3A', marginTop:14, letterSpacing:'.5px' }}>{msg}</div>
       </div>
     </div>
   );
@@ -232,13 +345,38 @@ export default function AgroSenseApp() {
   if (!session) return <LoginScreen />;
   if (loading) return Spinner('Cargando datos...');
 
+  // Cliente nuevo: asistente de configuración hasta terminarlo.
+  if (onboarding) {
+    return (
+      <OnboardingWizard
+        org={onboarding}
+        session={session}
+        onTerminar={() => { setLoading(true); setOnboarding(null); setFincaIdx(0); setTab('inicio'); setRecarga(r => r + 1); }}
+        onSalir={handleSignOut}
+      />
+    );
+  }
+
+  // Superadmin sin fincas propias: entra directo a Administración para crear clientes y fincas.
+  if (!fincas.length && isSuperadmin) {
+    return (
+      <div style={{ minHeight:'100vh', background:'#EEF2EC' }}>
+        <div style={{ display:'flex', justifyContent:'flex-end', gap:8, padding:'12px 16px 0' }}>
+          <button onClick={() => { setLoading(true); setRecarga(r => r + 1); }} style={{ height:36, padding:'0 14px', border:'1px solid #8FA38A', borderRadius:4, background:'#fff', color:'#3A5A3A', fontWeight:700, fontSize:16, cursor:'pointer' }}>Entrar a la app</button>
+          <button onClick={handleSignOut} style={{ height:36, padding:'0 14px', border:'1px solid #8FA38A', borderRadius:4, background:'#fff', color:'#3A5A3A', fontWeight:700, fontSize:16, cursor:'pointer' }}>Cerrar sesión</button>
+        </div>
+        <AdminScreen onOpenDrawer={() => {}} />
+      </div>
+    );
+  }
+
   if (!fincas.length) {
     return (
       <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#EEF2EC', padding:20 }}>
         <div style={{ textAlign:'center', maxWidth:340 }}>
-          <div style={{ fontWeight:800, fontSize:17, marginBottom:8 }}>Sin fincas asignadas</div>
-          <div style={{ fontFamily:'var(--font-jetbrains)', fontSize:12.5, color:'#6E8A6E', marginBottom:18 }}>Tu cuenta ({session.user.email}) no tiene acceso a ninguna finca todavía. Pide a un administrador que te agregue.</div>
-          <button onClick={handleSignOut} style={{ height:44, padding:'0 20px', border:'1px solid #C5D2C0', borderRadius:4, background:'#fff', color:'#3A5A3A', fontWeight:700, fontSize:13, cursor:'pointer' }}>Cerrar sesión</button>
+          <div style={{ fontWeight:800, fontSize:20, marginBottom:8 }}>Sin fincas asignadas</div>
+          <div style={{ fontFamily:'var(--font-jetbrains)', fontSize:16, color:'#3A4D3A', marginBottom:18 }}>Tu cuenta ({session.user.email}) no tiene acceso a ninguna finca todavía. Pide a un administrador que te agregue.</div>
+          <button onClick={handleSignOut} style={{ height:44, padding:'0 20px', border:'1px solid #8FA38A', borderRadius:4, background:'#fff', color:'#3A5A3A', fontWeight:700, fontSize:17, cursor:'pointer' }}>Cerrar sesión</button>
         </div>
       </div>
     );
@@ -256,13 +394,19 @@ export default function AgroSenseApp() {
         activeTab={tab}
         showAdmin={isSuperadmin}
         onClose={() => {}}
-        onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin','reportes','ajustes'].includes(key)) setTab(key as Tab); }}
+        onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin','reportes','ajustes','sinigan','potreros','clima'].includes(key)) setTab(key as Tab); }}
         onSignOut={handleSignOut}
         onOpenFincaPicker={fincas.length > 1 ? () => setFincaPickerOpen(true) : undefined}
       />
 
       {/* Screen content */}
       <div className="ag-main" style={{ flex:1, display:'flex', flexDirection:'column' }}>
+      <EstadoSenal sync={sync} fincaId={currentFinca?.id} />
+      {copiaDel && !sync.enLinea && (
+        <div style={{ fontFamily:'var(--font-jetbrains)', fontSize:10.5, color:'#6E8A6E', padding:'4px 16px', background:'#F7FAF6', borderBottom:'1px solid #E1E8DD' }}>
+          Mostrando datos guardados el {new Date(copiaDel).toLocaleString('es-CO', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}
+        </div>
+      )}
       <div style={{ flex:1, overflowY:'auto', overflowX:'hidden', paddingBottom:64 }} className="scrollbar-none ag-content-inner">
         {tab === 'inicio' && appFinca && (
           <InicioScreen
@@ -273,11 +417,29 @@ export default function AgroSenseApp() {
             onOpenDrawer={() => setDrawerOpen(true)}
             onOpenFincaPicker={() => setFincaPickerOpen(true)}
             onGoAnimales={() => setTab('animales')}
-            onGoPotreros={() => setDrawerOpen(true)}
+            onGoPotreros={() => setTab('potreros')}
+            climaCard={currentFinca ? <ClimaMini finca={currentFinca} onAbrir={() => setTab('clima')} /> : undefined}
             wPeriod={wPeriod}
             setWPeriod={setWPeriod}
             alertas={alertas}
-            pendingSync={pendingSync}
+            pendingSync={sync.pendientes.length}
+            precioKg={currentFinca?.precio_kg ?? null}
+            kgTotales={venta.kgTotales}
+            onPonerPrecio={currentRole === 'owner' ? () => setTab('ajustes') : undefined}
+            venta={
+              <>
+                <ListosParaVender
+                  r={venta}
+                  retiros={retiros}
+                  fincaNombre={currentFinca?.nombre ?? ''}
+                  ubicacion={currentFinca?.ubicacion ?? null}
+                  puedeOfrecer={currentRole === 'owner' || currentRole === 'admin'}
+                  onCambiarMeta={currentRole === 'owner' ? () => setTab('ajustes') : undefined}
+                  onAbrirAnimal={abrirAnimal}
+                />
+                <NoEngordan animales={venta.noEngordan} onAbrirAnimal={abrirAnimal} />
+              </>
+            }
           />
         )}
         {tab === 'animales' && (
@@ -334,6 +496,35 @@ export default function AgroSenseApp() {
             movimientos={movimientos}
           />
         )}
+        {tab === 'sinigan' && (
+          <SiniganScreen
+            key={currentFinca?.id}
+            onOpenDrawer={() => setDrawerOpen(true)}
+            finca={currentFinca}
+            role={currentRole}
+            animales={animales}
+            onRefresh={() => currentFinca && handleRefrescarFincas(currentFinca.id)}
+          />
+        )}
+        {tab === 'potreros' && (
+          <PotrerosScreen
+            finca={currentFinca}
+            esPropietario={currentRole === 'owner'}
+            onFincaCambiada={recargarFincas}
+            potreros={potreros}
+            animalesPorPotrero={animales.reduce<Record<string, number>>((m, a) => { if (a.potrero_id) m[a.potrero_id] = (m[a.potrero_id] ?? 0) + 1; return m; }, {})}
+            onOpenDrawer={() => setDrawerOpen(true)}
+            onPotrerosCambiados={() => currentFinca && loadFincaData(currentFinca.id)}
+          />
+        )}
+        {tab === 'clima' && (
+          <ClimaScreen
+            finca={currentFinca}
+            puedeEditar={currentRole === 'owner'}
+            onOpenDrawer={() => setDrawerOpen(true)}
+            onFincaActualizada={recargarFincas}
+          />
+        )}
         {tab === 'ajustes' && (
           <AjustesScreen
             onOpenDrawer={() => setDrawerOpen(true)}
@@ -342,26 +533,29 @@ export default function AgroSenseApp() {
             miembros={miembrosFinca}
             miMembresiaId={myMembresia?.id}
             displayName={displayName}
-            onFincaActualizada={() => currentFinca && loadFincaData(currentFinca.id)}
+            onFincaActualizada={() => void recargarFinca()}
             onMiembrosActualizados={() => currentFinca && loadFincaData(currentFinca.id)}
+            codigoTv={codigoTv}
           />
         )}
       </div>
       </div>
 
       {/* Tab bar — fixed at bottom (mobile only; desktop uses the sidebar) */}
-      <div className="ag-tabbar-mobile" style={{ position:'fixed', bottom:0, left:0, right:0, background:'rgba(238,242,236,.95)', backdropFilter:'blur(12px)', borderTop:'1px solid #E1E8DD', padding:'8px 8px 12px', display:'flex', zIndex:30 }}>
+      <div className="ag-tabbar-mobile" style={{ position:'fixed', bottom:0, left:0, right:0, background:'#fff', borderTop:'2px solid #8FA38A', padding:'6px 4px 10px', display:'flex', zIndex:30 }}>
         {TABS.map(t => {
           const active = tab === t.key;
           return (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3, background:'none', border:'none', cursor:'pointer', color: active ? '#15A34A' : '#9DB39D', padding:'6px 2px' }}>
+            <button key={t.key} onClick={() => setTab(t.key)} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:3, background:'none', border:'none', cursor:'pointer', color: active ? '#15803D' : '#3A4D3A', padding:'6px 2px', minHeight:60, borderRadius:8, ...(active ? { background:'#DCFCE7' } : {}) }}>
               {t.icon}
-              <span style={{ fontFamily:'var(--font-jetbrains)', fontSize:10, fontWeight: active ? 700 : 500, letterSpacing:'.3px' }}>{t.label}</span>
-              {active && <span style={{ width:4, height:4, borderRadius:'50%', background:'#15A34A', display:'block', marginTop:-2 }}/>}
+              <span style={{ fontSize:14, fontWeight: active ? 800 : 600 }}>{t.label}</span>
             </button>
           );
         })}
       </div>
+
+      {/* Soporte con IA */}
+      <SoporteChat origen="app" />
 
       {/* Overlays */}
       {drawerOpen && (
@@ -373,7 +567,7 @@ export default function AgroSenseApp() {
             role={currentRole}
             showAdmin={isSuperadmin}
             onClose={() => setDrawerOpen(false)}
-            onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin','reportes','ajustes'].includes(key)) setTab(key as Tab); }}
+            onNavigate={key => { if (['inicio','animales','rfid','agenda','finanzas','admin','reportes','ajustes','sinigan','potreros','clima'].includes(key)) setTab(key as Tab); }}
             onSignOut={handleSignOut}
           />
         </div>
@@ -389,6 +583,8 @@ export default function AgroSenseApp() {
             onBajaRegistrada={() => currentFinca && loadFincaData(currentFinca.id)}
             onVentaRegistrada={() => currentFinca && loadFincaData(currentFinca.id)}
             onTrasladoRegistrado={() => currentFinca && loadFincaData(currentFinca.id)}
+            onSanidadRegistrada={() => currentFinca && loadFincaData(currentFinca.id)}
+            retiro={retiros.get(selectedAnimal.dbId) ?? null}
           />
         </div>
       )}

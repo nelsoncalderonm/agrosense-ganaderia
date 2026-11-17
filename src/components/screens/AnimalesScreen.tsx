@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { Animal, CAT, ESTADO, gHexFor, gdpTxt } from '@/data/agrosense';
-import { registrarNacimiento } from '@/lib/supabase';
+import AreteIcon from '@/components/ui/AreteIcon';
+import { registrarAnimalOffline } from '@/lib/offline/acciones';
 import type { DbPotrero } from '@/lib/supabase';
 
 interface Props {
@@ -22,7 +23,6 @@ function NacimientoForm({
   fincaId, potreros, onCancelar, onRegistrado,
 }: { fincaId: string; potreros: DbPotrero[]; onCancelar: () => void; onRegistrado: () => void }) {
   const [arete, setArete] = useState('');
-  const [nombre, setNombre] = useState('');
   const [sexo, setSexo] = useState(SEXOS[0]);
   const [raza, setRaza] = useState(RAZAS[0]);
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
@@ -32,21 +32,21 @@ function NacimientoForm({
   const [err, setErr] = useState<string | null>(null);
 
   const inp: React.CSSProperties = {
-    width: '100%', height: 42, border: '1px solid #C5D2C0', borderRadius: 4,
-    padding: '0 12px', fontSize: 14, background: '#fff', outline: 'none',
-    fontFamily: 'inherit', color: '#1A2B1A', boxSizing: 'border-box',
+    width: '100%', height: 42, border: '1px solid #8FA38A', borderRadius: 4,
+    padding: '0 12px', fontSize: 18, background: '#fff', outline: 'none',
+    fontFamily: 'inherit', color: '#0F1A0F', boxSizing: 'border-box',
   };
   const lbl: React.CSSProperties = {
-    fontSize: 10, color: '#6E8A6E', fontWeight: 700, letterSpacing: '.5px',
+    fontSize: 14, color: '#3A4D3A', fontWeight: 700, letterSpacing: '.5px',
     marginBottom: 4, display: 'block',
   };
 
   const handleGuardar = async () => {
     if (!arete.trim()) { setErr('Arete requerido'); return; }
     setSaving(true); setErr(null);
-    const { error } = await registrarNacimiento({
+    const { error } = await registrarAnimalOffline({
       finca_id: fincaId, potrero_id: potreroId || null, fecha, sexo,
-      arete: arete.trim(), nombre: nombre.trim(), raza,
+      arete: arete.trim(), nombre: '', raza, categoria: 'Cría', origen: 'nacimiento',
       peso_kg: pesoKg ? parseFloat(pesoKg) : null,
     });
     setSaving(false);
@@ -56,15 +56,10 @@ function NacimientoForm({
 
   return (
     <div className="animate-up" style={{ background: '#fff', border: '1px solid #86EFAC', borderRadius: 6, padding: '16px 14px', margin: '0 16px 14px' }}>
-      <div style={{ fontWeight: 800, fontSize: 14, marginBottom: 14 }}>Registrar nacimiento</div>
+      <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 14 }}>Registrar nacimiento</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <div><label style={lbl}>ARETE</label>
-            <input style={inp} value={arete} onChange={e => setArete(e.target.value)} placeholder="Ej: ·512" autoFocus />
-          </div>
-          <div><label style={lbl}>NOMBRE (OPCIONAL)</label>
-            <input style={inp} value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Lucero" />
-          </div>
+        <div><label style={lbl}>NÚMERO DE ARETE</label>
+          <input style={inp} value={arete} onChange={e => setArete(e.target.value)} placeholder="Ej: 512" inputMode="numeric" autoFocus />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div><label style={lbl}>SEXO</label>
@@ -94,10 +89,10 @@ function NacimientoForm({
             </select>
           </div>
         )}
-        {err && <div style={{ fontSize: 12, color: '#DC2626', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{err}</div>}
+        {err && <div style={{ fontSize: 16, color: '#B91C1C', background: '#FEE2E2', padding: '6px 10px', borderRadius: 4 }}>{err}</div>}
         <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-          <button onClick={onCancelar} style={{ flex: 1, height: 46, border: '1px solid #C5D2C0', borderRadius: 4, background: '#fff', color: '#6E8A6E', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
-          <button onClick={handleGuardar} disabled={saving} style={{ flex: 1.6, height: 46, border: 'none', borderRadius: 4, background: saving ? '#6E8A6E' : '#15A34A', color: '#fff', fontWeight: 800, fontSize: 13, cursor: saving ? 'default' : 'pointer' }}>
+          <button onClick={onCancelar} style={{ flex: 1, height: 46, border: '1px solid #8FA38A', borderRadius: 4, background: '#fff', color: '#3A4D3A', fontWeight: 700, fontSize: 17, cursor: 'pointer' }}>Cancelar</button>
+          <button onClick={handleGuardar} disabled={saving} style={{ flex: 1.6, height: 46, border: 'none', borderRadius: 4, background: saving ? '#3A4D3A' : '#15803D', color: '#fff', fontWeight: 800, fontSize: 17, cursor: saving ? 'default' : 'pointer' }}>
             {saving ? 'Guardando…' : 'Guardar nacimiento'}
           </button>
         </div>
@@ -112,35 +107,35 @@ export default function AnimalesScreen({ onOpenDrawer, onSelectAnimal, animals, 
   const [showNacimiento, setShowNacimiento] = useState(false);
 
   const filtered = animals.filter(a => {
-    const matchSearch = !search || a.nombre.toLowerCase().includes(search.toLowerCase()) || a.arete.includes(search) || a.id.includes(search);
+    const matchSearch = !search || a.arete.includes(search) || a.id.includes(search);
     const matchChip = chip === 'Todos' || (chip === 'Alertas' ? a.estado !== 'green' : a.cat === chip);
     return matchSearch && matchChip;
   });
 
   return (
     <div style={{ paddingBottom: 90 }}>
-      <div style={{ position: 'sticky', top: 0, zIndex: 5, background: '#EEF2EC', padding: '16px 16px 12px', borderBottom: '1px solid #E1E8DD' }}>
+      <div style={{ position: 'sticky', top: 0, zIndex: 5, background: '#EEF2EC', padding: '16px 16px 12px', borderBottom: '1px solid #B9C6B4' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
           <button onClick={onOpenDrawer} className="ag-hamburger" style={{ width: 40, height: 40, marginLeft: -7, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, background: 'none', border: 'none' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1A2B1A" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0F1A0F" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
           </button>
-          <div style={{ fontWeight: 800, fontSize: 22, flex: 1 }}>Animales <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 13, color: '#9DB39D', fontWeight: 500 }}>{filtered.length} cab</span></div>
+          <div style={{ fontWeight: 800, fontSize: 25, flex: 1 }}>Animales <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 17, color: '#4A5E4A', fontWeight: 500 }}>{filtered.length} cab</span></div>
           {fincaId && (
-            <button onClick={() => setShowNacimiento(v => !v)} style={{ width: 38, height: 38, borderRadius: 4, border: '1px solid #86EFAC', background: '#DCFCE7', color: '#15A34A', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title="Registrar nacimiento">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#15A34A" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            <button onClick={() => setShowNacimiento(v => !v)} style={{ width: 38, height: 38, borderRadius: 4, border: '1px solid #86EFAC', background: '#DCFCE7', color: '#15803D', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} title="Registrar nacimiento">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#15803D" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
             </button>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fff', border: '1px solid #E1E8DD', borderRadius: 4, padding: '0 12px', height: 46 }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9DB39D" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" strokeLinecap="round"/></svg>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fff', border: '1px solid #B9C6B4', borderRadius: 4, padding: '0 12px', height: 46 }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4A5E4A" strokeWidth="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4" strokeLinecap="round"/></svg>
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar arete, nombre o RFID"
-            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#1A2B1A', fontFamily: 'var(--font-montserrat)', fontSize: 15 }}
+            placeholder="Buscar número de arete"
+            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#0F1A0F', fontFamily: 'var(--font-montserrat)', fontSize: 19 }}
           />
           {search && (
-            <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9DB39D', fontSize: 18 }}>×</button>
+            <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4A5E4A', fontSize: 21 }}>×</button>
           )}
         </div>
         <div className="scrollbar-none" style={{ display: 'flex', gap: 8, marginTop: 11, overflowX: 'auto', paddingBottom: 2 }}>
@@ -148,10 +143,10 @@ export default function AnimalesScreen({ onOpenDrawer, onSelectAnimal, animals, 
             <button key={c} onClick={() => setChip(c)} style={{
               flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
               padding: '8px 13px', borderRadius: 4, cursor: 'pointer',
-              background: chip === c ? '#1A2B1A' : '#fff',
-              border: `1px solid ${chip === c ? '#1A2B1A' : '#E1E8DD'}`,
-              color: chip === c ? '#fff' : '#1A2B1A',
-              fontSize: 12.5, fontWeight: 600,
+              background: chip === c ? '#0F1A0F' : '#fff',
+              border: `1px solid ${chip === c ? '#0F1A0F' : '#B9C6B4'}`,
+              color: chip === c ? '#fff' : '#0F1A0F',
+              fontSize: 16, fontWeight: 600,
             }}>{c}</button>
           ))}
         </div>
@@ -169,7 +164,7 @@ export default function AnimalesScreen({ onOpenDrawer, onSelectAnimal, animals, 
 
       <div className="ag-animales-grid" style={{ padding: '12px 16px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {filtered.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '50px 20px', color: '#9DB39D', fontFamily: 'var(--font-jetbrains)', fontSize: 13 }}>Sin resultados</div>
+          <div style={{ textAlign: 'center', padding: '50px 20px', color: '#4A5E4A', fontFamily: 'var(--font-jetbrains)', fontSize: 17 }}>Sin resultados</div>
         )}
         {filtered.map(a => {
           const cat = CAT[a.cat];
@@ -177,27 +172,27 @@ export default function AnimalesScreen({ onOpenDrawer, onSelectAnimal, animals, 
           return (
             <button key={a.id} onClick={() => onSelectAnimal(a)} style={{
               display: 'flex', alignItems: 'center', gap: 11,
-              background: '#fff', border: '1px solid #E1E8DD',
+              background: '#fff', border: '1px solid #B9C6B4',
               borderLeft: `3px solid ${cat.hex}`,
-              borderRadius: 4, padding: '11px 12px', cursor: 'pointer',
-              textAlign: 'left', width: '100%',
+              borderRadius: 4, padding: '14px 12px', cursor: 'pointer',
+              textAlign: 'left', width: '100%', minHeight: 76,
             }}>
-              <div style={{ width: 46, height: 46, borderRadius: '50%', background: cat.soft, border: `1px solid ${cat.hex}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 18, color: cat.hex, flexShrink: 0 }}>
-                {a.nombre.charAt(0)}
+              <div style={{ width: 46, height: 46, borderRadius: '50%', background: cat.soft, border: `1px solid ${cat.hex}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 21, color: cat.hex, flexShrink: 0 }}>
+                <AreteIcon color={cat.hex} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <span style={{ fontSize: 15, fontWeight: 600 }}>{a.nombre}</span>
-                  <span style={{ background: cat.soft, color: cat.hex, fontSize: 9.5, fontWeight: 700, borderRadius: 3, padding: '2px 6px', flexShrink: 0 }}>{a.cat}</span>
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px 7px' }}>
+                  <span style={{ fontSize: 21, fontWeight: 800 }}>{a.arete}</span>
+                  <span style={{ background: cat.soft, color: cat.hex, fontSize: 13, fontWeight: 700, borderRadius: 3, padding: '2px 6px', flexShrink: 0 }}>{a.cat}</span>
                   {a.estado !== 'green' && (
-                    <span style={{ background: est.soft, color: est.hex, fontSize: 9.5, fontWeight: 700, borderRadius: 3, padding: '2px 6px', flexShrink: 0 }}>{a.estadoCorto}</span>
+                    <span style={{ background: est.soft, color: est.hex, fontSize: 13, fontWeight: 700, borderRadius: 3, padding: '2px 6px', flexShrink: 0 }}>{a.estadoCorto}</span>
                   )}
                 </div>
-                <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 10.5, color: '#6E8A6E', marginTop: 3 }}>{a.arete} · {a.raza} · {a.potrero}</div>
+                <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 14, color: '#3A4D3A', marginTop: 3 }}>{a.raza} · {a.potrero}</div>
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                <div style={{ fontFamily: 'var(--font-jetbrains)', fontWeight: 700, fontSize: 18 }}>{a.peso}<span style={{ fontSize: 10, color: '#9DB39D' }}> kg</span></div>
-                <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 10.5, color: gHexFor(a.gdp), marginTop: 1 }}>{gdpTxt(a.gdp)} kg/d</div>
+                <div style={{ fontFamily: 'var(--font-jetbrains)', fontWeight: 700, fontSize: 21 }}>{a.peso}<span style={{ fontSize: 14, color: '#4A5E4A' }}> kg</span></div>
+                <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 14, color: gHexFor(a.gdp), marginTop: 1 }}>{gdpTxt(a.gdp)} kg/d</div>
               </div>
             </button>
           );
