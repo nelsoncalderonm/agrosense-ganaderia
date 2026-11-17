@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Animal, CAT, ESTADO, gHexFor, gdpTxt } from '@/data/agrosense';
 import { getAnimalEventos, DbAnimalEvento, DbFinca } from '@/lib/supabase';
+import { fechaCorta, type Retiro } from '@/lib/venta';
 import { registrarBajaOffline, registrarVentaOffline, trasladarAnimalOffline, registrarEventoSanitarioOffline, TIPOS_SANITARIOS, type TipoSanitario } from '@/lib/offline/acciones';
 
 interface Props {
@@ -14,6 +15,20 @@ interface Props {
   onBajaRegistrada?: () => void;
   onVentaRegistrada?: () => void;
   onTrasladoRegistrado?: () => void;
+  onSanidadRegistrada?: () => void;
+  retiro?: Retiro | null;   // tratamiento con días de retiro que todavía no termina
+}
+
+function AvisoRetiro({ retiro }: { retiro: Retiro }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#FEE2E2', border: '2px solid #DC2626', borderRadius: 4, padding: '12px 14px', marginBottom: 14 }}>
+      <span style={{ fontSize: 22, lineHeight: 1 }} aria-hidden>⛔</span>
+      <div>
+        <div style={{ fontSize: 15, fontWeight: 800, color: '#991B1B' }}>No vender hasta el {fechaCorta(retiro.hasta)}</div>
+        <div style={{ fontSize: 12.5, color: '#991B1B', marginTop: 2 }}>Está en retiro{retiro.producto ? ` por ${retiro.producto}` : ''}. En planta lo pueden rechazar.</div>
+      </div>
+    </div>
+  );
 }
 
 const CAUSAS = ['Enfermedad', 'Accidente', 'Depredación', 'Parto', 'Vejez', 'Otra'];
@@ -84,8 +99,8 @@ function BajaForm({ animal, fincaId, onCancelar, onRegistrada }: {
   );
 }
 
-function VentaForm({ animal, fincaId, onCancelar, onRegistrada }: {
-  animal: Animal; fincaId: string; onCancelar: () => void; onRegistrada: () => void;
+function VentaForm({ animal, fincaId, retiro, onCancelar, onRegistrada }: {
+  animal: Animal; fincaId: string; retiro?: Retiro | null; onCancelar: () => void; onRegistrada: () => void;
 }) {
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
   const [pesoKg, setPesoKg] = useState(animal.peso ? String(animal.peso) : '');
@@ -119,6 +134,7 @@ function VentaForm({ animal, fincaId, onCancelar, onRegistrada }: {
             <input style={inp} type="number" min={0} value={pesoKg} onChange={e => setPesoKg(e.target.value)} placeholder="0" />
           </div>
         </div>
+        {retiro && <AvisoRetiro retiro={retiro} />}
         <div><label style={lbl}>COMPRADOR</label>
           <input style={inp} value={comprador} onChange={e => setComprador(e.target.value)} placeholder="Frigorífico, subasta, particular…" autoFocus />
         </div>
@@ -195,14 +211,18 @@ function SanidadForm({ animal, fincaId, onCancelar, onRegistrada }: {
   const [dosis, setDosis] = useState('');
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
   const [notas, setNotas] = useState('');
+  const [diasRetiro, setDiasRetiro] = useState('');
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const handleGuardar = async () => {
+    const dias = diasRetiro ? parseInt(diasRetiro, 10) : null;
+    if (dias != null && (isNaN(dias) || dias < 0 || dias > 365)) { setErr('Días de retiro: entre 0 y 365'); return; }
     setSaving(true); setErr(null);
     const { error } = await registrarEventoSanitarioOffline({
       finca_id: fincaId, animal: { dbId: animal.dbId, nombre: animal.nombre, arete: animal.arete },
       tipo, producto: producto.trim() || null, dosis: dosis.trim() || null, fecha, notas: notas.trim() || null,
+      dias_retiro: dias || null,
     });
     setSaving(false);
     if (error) { setErr(error); return; }
@@ -230,6 +250,14 @@ function SanidadForm({ animal, fincaId, onCancelar, onRegistrada }: {
           <div><label style={lbl}>DOSIS</label>
             <input style={inp} value={dosis} onChange={e => setDosis(e.target.value)} placeholder="Ej: 10 ml" />
           </div>
+        </div>
+        <div><label style={lbl}>DÍAS DE RETIRO (LO DICE LA ETIQUETA DEL PRODUCTO)</label>
+          <input style={{ ...inp, fontSize: 18, fontWeight: 700 }} type="number" inputMode="numeric" min={0} max={365} value={diasRetiro} onChange={e => setDiasRetiro(e.target.value)} placeholder="0 si no tiene" />
+          {Number(diasRetiro) > 0 && (
+            <div style={{ fontSize: 12.5, color: '#991B1B', marginTop: 5, fontWeight: 600 }}>
+              No se podrá vender hasta el {fechaCorta(new Date(new Date(`${fecha}T12:00:00`).getTime() + Number(diasRetiro) * 86400000).toLocaleDateString('en-CA'))}
+            </div>
+          )}
         </div>
         <div><label style={lbl}>NOTAS (OPCIONAL)</label>
           <input style={inp} value={notas} onChange={e => setNotas(e.target.value)} placeholder="Observaciones" />
@@ -303,7 +331,7 @@ function Trazabilidad({ fincas, eventos, loading }: { fincas: DbFinca[]; eventos
   );
 }
 
-export default function AnimalProfile({ animal, fincaId, fincas = [], onClose, onPesaje, onBajaRegistrada, onVentaRegistrada, onTrasladoRegistrado }: Props) {
+export default function AnimalProfile({ animal, fincaId, fincas = [], onClose, onPesaje, onBajaRegistrada, onVentaRegistrada, onTrasladoRegistrado, onSanidadRegistrada, retiro }: Props) {
   const cat = CAT[animal.cat];
   const est = ESTADO[animal.estado];
   const gain = animal.peso - animal.pesoAnt;
@@ -354,6 +382,8 @@ export default function AnimalProfile({ animal, fincaId, fincas = [], onClose, o
             <span style={{ fontSize: 13, fontWeight: 600, color: est.hex }}>{animal.estadoTxt}</span>
           </div>
 
+          {retiro && <AvisoRetiro retiro={retiro} />}
+
           {/* Weight KPIs */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 9, marginBottom: 14 }}>
             <div style={{ background: '#fff', border: '1px solid #E1E8DD', borderRadius: 4, padding: '12px 10px' }}>
@@ -398,7 +428,7 @@ export default function AnimalProfile({ animal, fincaId, fincas = [], onClose, o
           )}
           {showVenta && fincaId && (
             <VentaForm
-              animal={animal} fincaId={fincaId}
+              animal={animal} fincaId={fincaId} retiro={retiro}
               onCancelar={() => setShowVenta(false)}
               onRegistrada={() => { setShowVenta(false); onVentaRegistrada?.(); onClose(); }}
             />
@@ -407,7 +437,7 @@ export default function AnimalProfile({ animal, fincaId, fincas = [], onClose, o
             <SanidadForm
               animal={animal} fincaId={fincaId}
               onCancelar={() => setShowSanidad(false)}
-              onRegistrada={() => setShowSanidad(false)}
+              onRegistrada={() => { setShowSanidad(false); onSanidadRegistrada?.(); }}
             />
           )}
           {showTraslado && fincaId && (

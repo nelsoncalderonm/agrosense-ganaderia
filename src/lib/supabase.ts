@@ -28,6 +28,9 @@ export type DbFinca = {
   id: string; nombre: string; ubicacion: string | null;
   hectareas: number | null; valor_cop: number | null; activa: boolean;
   organizacion_id: string | null;
+  meta_peso_kg?: number | null;           // peso para sacar al matadero
+  precio_kg?: number | null;              // precio del kilo en pie que pone el ganadero
+  precio_kg_actualizado?: string | null;
 };
 
 export type DbOrganizacion = {
@@ -287,6 +290,26 @@ export async function crearMovimiento(payload: {
   notas: string | null;
 }): Promise<{ error: string | null }> {
   const { error } = await supabase.from('movimientos').insert(payload);
+  return { error: error?.message ?? null };
+}
+
+// Tratamientos con días de retiro que todavía no terminan (el animal no se debe vender).
+export type DbRetiro = {
+  id: string; animal_id: string | null; potrero_id: string | null;
+  producto: string | null; retiro_hasta: string;
+};
+export async function getRetiros(finca_id: string): Promise<DbRetiro[]> {
+  const hoy = new Date().toLocaleDateString('en-CA');
+  const { data } = await supabase.from('eventos_sanitarios')
+    .select('id, animal_id, potrero_id, producto, retiro_hasta')
+    .eq('finca_id', finca_id).gt('dias_retiro', 0).gte('retiro_hasta', hoy);
+  return (data ?? []) as DbRetiro[];
+}
+
+export async function actualizarVentaFinca(finca_id: string, payload: { meta_peso_kg: number; precio_kg: number | null }): Promise<{ error: string | null }> {
+  const { error } = await supabase.from('fincas').update({
+    ...payload, precio_kg_actualizado: new Date().toISOString(), updated_at: new Date().toISOString(),
+  }).eq('id', finca_id);
   return { error: error?.message ?? null };
 }
 
