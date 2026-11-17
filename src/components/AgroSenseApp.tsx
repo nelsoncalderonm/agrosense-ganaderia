@@ -4,11 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { Animal, Tab, RoleKey, CAT, ESTADO } from '@/data/agrosense';
 import {
-  supabase, getFincas, getPotreros, getAnimales, getPesajesRecientes,
+  supabase, getFincas, getPotreros, getAnimales,
   getAlertas, getEventos, getProveedores, getClientes, getGastos, getMovimientos,
   getVacunaciones, getNacimientos, getBajas, getMembresiasFinca,
   registrarPesaje, getMisMembresias, getIsSuperadmin,
-  DbFinca, DbPotrero, DbAnimal, DbAlerta, DbEvento, DbProveedor, DbCliente, DbGasto, DbMovimiento, DbPesaje, DbMembresia,
+  DbFinca, DbPotrero, DbAnimal, DbAlerta, DbEvento, DbProveedor, DbCliente, DbGasto, DbMovimiento, DbMembresia,
   DbVacunacion, DbNacimiento, DbBaja,
 } from '@/lib/supabase';
 import InicioScreen from './screens/InicioScreen';
@@ -192,21 +192,9 @@ export default function AgroSenseApp() {
   };
 
   const handleRegistrarPesaje = async (animal: Animal, pesoKg: number) => {
-    const dbAnimal = animales.find(a => a.arete === animal.arete);
-    if (!dbAnimal || !currentFinca) return;
-    const diasPeriodo = 14;
-    const gdp = dbAnimal.peso_actual ? (pesoKg - dbAnimal.peso_actual) / diasPeriodo : 0;
-    await registrarPesaje({
-      animal_id: dbAnimal.id,
-      finca_id: currentFinca.id,
-      sesion_id: null as unknown as undefined,
-      usuario_id: null as unknown as undefined,
-      peso_kg: pesoKg,
-      gdp_calculado: Math.round(gdp * 1000) / 1000,
-      dias_periodo: diasPeriodo,
-      pendiente_sync: false,
-      fecha: new Date().toISOString(),
-    } as Omit<DbPesaje, 'id'>);
+    if (!currentFinca) return;
+    const { error } = await registrarPesaje({ animal_id: animal.dbId, peso_kg: pesoKg });
+    if (error) { window.alert(`No se pudo guardar el pesaje: ${error}`); return; }
     await loadFincaData(currentFinca.id);
   };
 
