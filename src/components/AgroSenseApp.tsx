@@ -183,6 +183,18 @@ export default function AgroSenseApp() {
   // Lo registrado sin señal se ve de inmediato (animales nuevos, pesos, vendidos fuera).
   const animales = currentFinca ? aplicarPendientes(animalesServidor, sync.pendientes, currentFinca.id) : animalesServidor;
 
+  // Enlace del QR del televisor: /?vincular_tv=ABC123 abre Ajustes con el código puesto (después de entrar).
+  const [codigoTv] = useState<string | null>(() =>
+    typeof window === 'undefined' ? null : new URL(window.location.href).searchParams.get('vincular_tv'));
+  const [codigoTvAbierto, setCodigoTvAbierto] = useState(false);
+  if (codigoTv && session && !codigoTvAbierto) { setCodigoTvAbierto(true); setTab('ajustes'); }
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('vincular_tv')) return;
+    url.searchParams.delete('vincular_tv');
+    window.history.replaceState(null, '', url.pathname + url.search);
+  }, []);
+
   const aplicarCopia = useCallback((c: CopiaFinca) => {
     setPotreros(c.potreros);
     setAnimales(c.animales);
@@ -523,6 +535,7 @@ export default function AgroSenseApp() {
             displayName={displayName}
             onFincaActualizada={() => void recargarFinca()}
             onMiembrosActualizados={() => currentFinca && loadFincaData(currentFinca.id)}
+            codigoTv={codigoTv}
           />
         )}
       </div>

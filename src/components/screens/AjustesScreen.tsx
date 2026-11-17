@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { RoleKey } from '@/data/agrosense';
+import TableroTvCard from './TableroTvCard';
 import UbicacionFinca from '../ui/UbicacionFinca';
 import { DbFinca, DbMembresia, actualizarFinca, actualizarVentaFinca, actualizarMembresia, eliminarMembresia, cambiarPassword, getConectadosTelegram } from '@/lib/supabase';
 import { TelegramCard, EnlaceTelegramMiembro } from './TelegramCard';
@@ -15,6 +16,7 @@ interface Props {
   displayName: string;
   onFincaActualizada: () => void;
   onMiembrosActualizados: () => void;
+  codigoTv?: string | null;
 }
 
 const ROLE_OPTIONS: { value: RoleKey; label: string }[] = [
@@ -243,7 +245,7 @@ function CuentaForm({ displayName, miMembresiaId, onNombreActualizado }: { displ
   );
 }
 
-export default function AjustesScreen({ onOpenDrawer, finca, role, miembros, miMembresiaId, displayName, onFincaActualizada, onMiembrosActualizados }: Props) {
+export default function AjustesScreen({ onOpenDrawer, finca, role, miembros, miMembresiaId, displayName, onFincaActualizada, onMiembrosActualizados, codigoTv }: Props) {
   const isOwner = role === 'owner';
   const [conectados, setConectados] = useState<Set<string>>(new Set());
   useEffect(() => {
@@ -252,6 +254,7 @@ export default function AjustesScreen({ onOpenDrawer, finca, role, miembros, miM
     getConectadosTelegram(finca.id).then(s => { if (vivo) setConectados(s); });
     return () => { vivo = false; };
   }, [finca, isOwner, miembros]);
+  const puedeTv = role === 'owner' || role === 'admin';
 
   return (
     <div style={{ paddingBottom: 90 }}>
@@ -278,6 +281,10 @@ export default function AjustesScreen({ onOpenDrawer, finca, role, miembros, miM
         )}
         {isOwner && finca && (
           <UbicacionFinca key={finca.id} finca={finca} puedeEditar onGuardado={onFincaActualizada} />
+        )}
+
+        {puedeTv && finca && (
+          <TableroTvCard key={finca.id} fincaId={finca.id} codigoInicial={codigoTv} />
         )}
 
         {isOwner && (
