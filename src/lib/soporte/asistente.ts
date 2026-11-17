@@ -3,9 +3,12 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getSupabaseAdmin } from '@/lib/supabaseAdmin';
 import { SYSTEM_PROMPT } from './conocimiento';
 
+// Proveedor: OpenRouter si existe OPENROUTER_API_KEY; si no, la API de Anthropic (ANTHROPIC_API_KEY).
+// OpenRouter expone la misma API de mensajes de Anthropic en https://openrouter.ai/api/v1/messages.
+const USA_OPENROUTER = Boolean(process.env.OPENROUTER_API_KEY);
 // Modelo configurable por variable de entorno (SOPORTE_MODELO).
 // Por defecto Claude Opus 5.5 con esfuerzo bajo: respuestas cortas de soporte.
-const MODELO = process.env.SOPORTE_MODELO || 'claude-opus-5-5';
+const MODELO = process.env.SOPORTE_MODELO || (USA_OPENROUTER ? 'anthropic/claude-opus-5.5' : 'claude-opus-5-5');
 const MAX_PASOS_HERRAMIENTAS = 3;
 
 export type Origen = 'app' | 'landing' | 'web' | 'whatsapp' | 'telegram';
@@ -21,7 +24,16 @@ export type ResultadoSoporte = {
 
 let anthropic: Anthropic | null = null;
 function getAnthropic(): Anthropic {
-  if (!anthropic) anthropic = new Anthropic(); // lee ANTHROPIC_API_KEY
+  if (!anthropic) {
+    anthropic = USA_OPENROUTER
+      ? new Anthropic({
+          baseURL: 'https://openrouter.ai/api',
+          apiKey: null,
+          authToken: process.env.OPENROUTER_API_KEY,
+          defaultHeaders: { 'X-Title': 'AgroSense Soporte' },
+        })
+      : new Anthropic(); // lee ANTHROPIC_API_KEY
+  }
   return anthropic;
 }
 
@@ -227,8 +239,8 @@ export async function responder(opts: {
     const res = await getAnthropic().beta.messages.create({
       model: MODELO,
       max_tokens: 4000,
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
+      // Respaldo si el modelo declina: en Anthropic el modo 'default'; OpenRouter no lo usa.
+      ...(USA_OPENROUTER ? {} : { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const }),
       output_config: { effort: 'low' },
       system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
       tools: HERRAMIENTAS,

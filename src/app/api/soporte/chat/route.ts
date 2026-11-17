@@ -51,8 +51,8 @@ export async function OPTIONS(request: Request) {
 }
 
 export async function POST(request: Request) {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return json(request, { error: 'El soporte con IA no está configurado (falta ANTHROPIC_API_KEY).' }, 503);
+  if (!process.env.OPENROUTER_API_KEY && !process.env.ANTHROPIC_API_KEY) {
+    return json(request, { error: 'El soporte con IA no está configurado (falta OPENROUTER_API_KEY o ANTHROPIC_API_KEY).' }, 503);
   }
 
   const ip = (request.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || 'desconocida';
