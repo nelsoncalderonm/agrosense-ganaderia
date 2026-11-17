@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Animal, CAT, ESTADO, gHexFor, gdpTxt } from '@/data/agrosense';
+import AreteIcon from '@/components/ui/AreteIcon';
 import { registrarBaja, registrarVenta, trasladarAnimal, getAnimalEventos, DbAnimalEvento, DbFinca } from '@/lib/supabase';
 
 interface Props {
@@ -55,7 +56,7 @@ function BajaForm({ animal, fincaId, onCancelar, onRegistrada }: {
 
   return (
     <div className="animate-up" style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: 6, padding: '16px 14px' }}>
-      <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 4, color: '#B91C1C' }}>Registrar baja de {animal.nombre}</div>
+      <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 4, color: '#B91C1C' }}>Registrar baja del arete {animal.arete}</div>
       <div style={{ fontSize: 15, color: '#991B1B', marginBottom: 12 }}>El animal se marcará como inactivo y saldrá de los listados.</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -107,7 +108,7 @@ function VentaForm({ animal, fincaId, onCancelar, onRegistrada }: {
 
   return (
     <div className="animate-up" style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 6, padding: '16px 14px' }}>
-      <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 4, color: '#B45309' }}>Vender a {animal.nombre}</div>
+      <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 4, color: '#B45309' }}>Vender el arete {animal.arete}</div>
       <div style={{ fontSize: 15, color: '#92400E', marginBottom: 12 }}>El animal se marcará como inactivo y saldrá de los listados.</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -160,7 +161,7 @@ function TrasladoForm({ animal, fincaId, fincas, onCancelar, onRegistrada }: {
 
   return (
     <div className="animate-up" style={{ background: '#F5F3FF', border: '1px solid #DDD6FE', borderRadius: 6, padding: '16px 14px' }}>
-      <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 12, color: '#7C3AED' }}>Trasladar a {animal.nombre}</div>
+      <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 12, color: '#7C3AED' }}>Trasladar el arete {animal.arete}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div><label style={lbl}>FINCA DESTINO</label>
           <select style={inp} value={fincaDestinoId} onChange={e => setFincaDestinoId(e.target.value)}>
@@ -271,11 +272,12 @@ export default function AnimalProfile({ animal, fincaId, fincas = [], onClose, o
         <div style={{ padding: '8px 20px 16px', borderBottom: '1px solid #B9C6B4' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ width: 60, height: 60, borderRadius: '50%', background: cat.soft, border: `2px solid ${cat.hex}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 26, color: cat.hex, flexShrink: 0 }}>
-              {animal.nombre.charAt(0)}
+              <AreteIcon color={cat.hex} size={30} />
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 800, fontSize: 25, lineHeight: 1 }}>{animal.nombre}</div>
-              <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 15, color: '#3A4D3A', marginTop: 5 }}>{animal.id} · {animal.arete}</div>
+              <div style={{ fontSize: 14, color: '#3A4D3A', fontWeight: 700, letterSpacing: '.5px' }}>ARETE</div>
+              <div style={{ fontWeight: 800, fontSize: 28, lineHeight: 1.05 }}>{animal.arete}</div>
+              <div style={{ fontSize: 15, color: '#3A4D3A', marginTop: 4 }}>{animal.raza} · {animal.sexo}</div>
               <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
                 <span style={{ background: cat.soft, color: cat.hex, fontSize: 14, fontWeight: 700, borderRadius: 3, padding: '2px 8px' }}>{animal.cat}</span>
                 <span style={{ background: est.soft, color: est.hex, fontSize: 14, fontWeight: 700, borderRadius: 3, padding: '2px 8px' }}>{animal.estadoCorto}</span>

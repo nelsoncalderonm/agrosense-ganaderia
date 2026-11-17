@@ -39,9 +39,9 @@ function generarInventarioPdf(fincaNombre: string, animals: Animal[]) {
   pdfHeader(doc, 'Inventario de animales', fincaNombre, `${animals.length} animales · corte al ${new Date().toLocaleDateString('es-CO')}`);
   autoTable(doc, {
     startY: 105,
-    head: [['Arete', 'Nombre', 'Raza', 'Sexo', 'Categoría', 'Peso (kg)', 'GDP (kg/d)', 'Potrero', 'Días', 'Estado']],
+    head: [['Arete', 'Raza', 'Sexo', 'Categoría', 'Peso (kg)', 'GDP (kg/d)', 'Potrero', 'Días', 'Estado']],
     body: animals.map(a => [
-      a.arete, a.nombre, a.raza, a.sexo, CAT_LABEL[a.cat],
+      a.arete, a.raza, a.sexo, CAT_LABEL[a.cat],
       a.peso.toString(), a.gdp.toFixed(2), a.potrero, a.dias.toString(), a.estadoCorto,
     ]),
     styles: { fontSize: 13 },

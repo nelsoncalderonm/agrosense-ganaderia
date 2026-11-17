@@ -109,11 +109,11 @@ export const MOVIMIENTOS_GANADO: MovGanado[] = [
 ];
 
 export const RFID_RECENT = [
-  { nombre:'Tormenta', id:'·190', peso:467, estado:'green' as EstadoKey },
-  { nombre:'Manchas',  id:'·012', peso:389, estado:'amber' as EstadoKey },
-  { nombre:'Rayo',     id:'·233', peso:502, estado:'green' as EstadoKey },
-  { nombre:'Perla',    id:'·690', peso:421, estado:'amber' as EstadoKey },
-  { nombre:'Bravo',    id:'·301', peso:612, estado:'green' as EstadoKey },
+  { id:'190', peso:467, estado:'green' as EstadoKey },
+  { id:'012', peso:389, estado:'amber' as EstadoKey },
+  { id:'233', peso:502, estado:'green' as EstadoKey },
+  { id:'690', peso:421, estado:'amber' as EstadoKey },
+  { id:'301', peso:612, estado:'green' as EstadoKey },
 ];
 
 export const AGENDA_EVENTS = [

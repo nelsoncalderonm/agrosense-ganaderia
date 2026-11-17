@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Animal, CAT, ESTADO, gHexFor, gdpTxt } from '@/data/agrosense';
+import AreteIcon from '@/components/ui/AreteIcon';
 import { registrarNacimiento } from '@/lib/supabase';
 import type { DbPotrero } from '@/lib/supabase';
 
@@ -22,7 +23,6 @@ function NacimientoForm({
   fincaId, potreros, onCancelar, onRegistrado,
 }: { fincaId: string; potreros: DbPotrero[]; onCancelar: () => void; onRegistrado: () => void }) {
   const [arete, setArete] = useState('');
-  const [nombre, setNombre] = useState('');
   const [sexo, setSexo] = useState(SEXOS[0]);
   const [raza, setRaza] = useState(RAZAS[0]);
   const [fecha, setFecha] = useState(new Date().toISOString().slice(0, 10));
@@ -46,7 +46,7 @@ function NacimientoForm({
     setSaving(true); setErr(null);
     const { error } = await registrarNacimiento({
       finca_id: fincaId, potrero_id: potreroId || null, fecha, sexo,
-      arete: arete.trim(), nombre: nombre.trim(), raza,
+      arete: arete.trim(), nombre: '', raza,
       peso_kg: pesoKg ? parseFloat(pesoKg) : null,
     });
     setSaving(false);
@@ -58,13 +58,8 @@ function NacimientoForm({
     <div className="animate-up" style={{ background: '#fff', border: '1px solid #86EFAC', borderRadius: 6, padding: '16px 14px', margin: '0 16px 14px' }}>
       <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 14 }}>Registrar nacimiento</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <div><label style={lbl}>ARETE</label>
-            <input style={inp} value={arete} onChange={e => setArete(e.target.value)} placeholder="Ej: ·512" autoFocus />
-          </div>
-          <div><label style={lbl}>NOMBRE (OPCIONAL)</label>
-            <input style={inp} value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Lucero" />
-          </div>
+        <div><label style={lbl}>NÚMERO DE ARETE</label>
+          <input style={inp} value={arete} onChange={e => setArete(e.target.value)} placeholder="Ej: 512" inputMode="numeric" autoFocus />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div><label style={lbl}>SEXO</label>
@@ -112,7 +107,7 @@ export default function AnimalesScreen({ onOpenDrawer, onSelectAnimal, animals, 
   const [showNacimiento, setShowNacimiento] = useState(false);
 
   const filtered = animals.filter(a => {
-    const matchSearch = !search || a.nombre.toLowerCase().includes(search.toLowerCase()) || a.arete.includes(search) || a.id.includes(search);
+    const matchSearch = !search || a.arete.includes(search) || a.id.includes(search);
     const matchChip = chip === 'Todos' || (chip === 'Alertas' ? a.estado !== 'green' : a.cat === chip);
     return matchSearch && matchChip;
   });
@@ -136,7 +131,7 @@ export default function AnimalesScreen({ onOpenDrawer, onSelectAnimal, animals, 
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar arete, nombre o RFID"
+            placeholder="Buscar número de arete"
             style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#0F1A0F', fontFamily: 'var(--font-montserrat)', fontSize: 19 }}
           />
           {search && (
@@ -183,17 +178,17 @@ export default function AnimalesScreen({ onOpenDrawer, onSelectAnimal, animals, 
               textAlign: 'left', width: '100%', minHeight: 76,
             }}>
               <div style={{ width: 46, height: 46, borderRadius: '50%', background: cat.soft, border: `1px solid ${cat.hex}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 21, color: cat.hex, flexShrink: 0 }}>
-                {a.nombre.charAt(0)}
+                <AreteIcon color={cat.hex} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px 7px' }}>
-                  <span style={{ fontSize: 19, fontWeight: 700 }}>{a.nombre}</span>
+                  <span style={{ fontSize: 21, fontWeight: 800 }}>{a.arete}</span>
                   <span style={{ background: cat.soft, color: cat.hex, fontSize: 13, fontWeight: 700, borderRadius: 3, padding: '2px 6px', flexShrink: 0 }}>{a.cat}</span>
                   {a.estado !== 'green' && (
                     <span style={{ background: est.soft, color: est.hex, fontSize: 13, fontWeight: 700, borderRadius: 3, padding: '2px 6px', flexShrink: 0 }}>{a.estadoCorto}</span>
                   )}
                 </div>
-                <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 14, color: '#3A4D3A', marginTop: 3 }}>{a.arete} · {a.raza} · {a.potrero}</div>
+                <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 14, color: '#3A4D3A', marginTop: 3 }}>{a.raza} · {a.potrero}</div>
               </div>
               <div style={{ textAlign: 'right', flexShrink: 0 }}>
                 <div style={{ fontFamily: 'var(--font-jetbrains)', fontWeight: 700, fontSize: 21 }}>{a.peso}<span style={{ fontSize: 14, color: '#4A5E4A' }}> kg</span></div>

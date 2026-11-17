@@ -35,7 +35,8 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
 // Convert DB types to app types
 function dbAnimalToAnimal(a: DbAnimal, potreroNombre: string): Animal {
   return {
-    nombre: a.nombre ?? a.arete,
+    // El ganado no lleva nombre: se identifica por el número de arete.
+    nombre: a.arete,
     id: `CO·${a.arete.replace('·', '0')}`,
     dbId: a.id,
     arete: a.arete,

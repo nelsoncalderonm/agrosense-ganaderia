@@ -1,6 +1,7 @@
 'use client';
 
 import { Finca, WEIGHT_DATA, ESTADO, CAT, money, gHexFor, gdpTxt } from '@/data/agrosense';
+import AreteIcon from '@/components/ui/AreteIcon';
 import { DbAlerta } from '@/lib/supabase';
 
 const SEV_HEX: Record<string, { hex: string; soft: string }> = {
@@ -92,10 +93,10 @@ export default function InicioScreen({ finca, role, moneda, setMoneda, onOpenDra
   const periods: ('1M' | '3M' | '6M')[] = ['1M', '3M', '6M'];
 
   const recentPesajes = [
-    { nombre: 'Capitán', arete: '·903', ini: 'C', t: 'hace 2 horas', peso: 538, gdpV: 1.12, soft: CAT.Ceba.soft, hex: CAT.Ceba.hex },
-    { nombre: 'Rayo',    arete: '·233', ini: 'R', t: 'hace 5 horas', peso: 502, gdpV: 1.05, soft: CAT.Ceba.soft, hex: CAT.Ceba.hex },
-    { nombre: 'Manchas', arete: '·012', ini: 'M', t: 'ayer',         peso: 389, gdpV: 0.42, soft: CAT.Cría.soft, hex: CAT.Cría.hex },
-    { nombre: 'Perla',   arete: '·690', ini: 'P', t: 'ayer',         peso: 421, gdpV: 0.55, soft: CAT.Cría.soft, hex: CAT.Cría.hex },
+    { arete: '903', t: 'hace 2 horas', peso: 538, gdpV: 1.12, soft: CAT.Ceba.soft, hex: CAT.Ceba.hex },
+    { arete: '233', t: 'hace 5 horas', peso: 502, gdpV: 1.05, soft: CAT.Ceba.soft, hex: CAT.Ceba.hex },
+    { arete: '012', t: 'ayer',         peso: 389, gdpV: 0.42, soft: CAT.Cría.soft, hex: CAT.Cría.hex },
+    { arete: '690', t: 'ayer',         peso: 421, gdpV: 0.55, soft: CAT.Cría.soft, hex: CAT.Cría.hex },
   ];
 
   return (
@@ -309,9 +310,9 @@ export default function InicioScreen({ finca, role, moneda, setMoneda, onOpenDra
       <div style={{ background: '#fff', border: '1px solid #B9C6B4', borderRadius: 4, overflow: 'hidden' }}>
         {recentPesajes.map((p, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 12px', borderTop: i > 0 ? '1px solid #EDF1EA' : 'none' }}>
-            <div style={{ width: 34, height: 34, borderRadius: '50%', background: p.soft, border: `1px solid ${p.hex}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 18, color: p.hex, flexShrink: 0 }}>{p.ini}</div>
+            <div style={{ width: 34, height: 34, borderRadius: '50%', background: p.soft, border: `1px solid ${p.hex}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 18, color: p.hex, flexShrink: 0 }}><AreteIcon color={p.hex} size={20} /></div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 18, fontWeight: 600 }}>{p.nombre} <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 14, color: '#4A5E4A', fontWeight: 500 }}>{p.arete}</span></div>
+              <div style={{ fontSize: 18, fontWeight: 700 }}>Arete {p.arete}</div>
               <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 14, color: '#3A4D3A', marginTop: 2 }}>{p.t}</div>
             </div>
             <div style={{ textAlign: 'right', flexShrink: 0 }}>

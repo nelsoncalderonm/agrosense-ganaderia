@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { Animal, RFID_RECENT, ESTADO, CAT, gHexFor, gdpTxt } from '@/data/agrosense';
+import AreteIcon from '@/components/ui/AreteIcon';
 import { registrarCompraAnimal } from '@/lib/supabase';
 import type { DbPotrero } from '@/lib/supabase';
 import { useBluetooth } from '@/hooks/useBluetooth';
@@ -73,7 +74,6 @@ function CrearAnimalForm({
   arete: string; fincaId: string; potreros: DbPotrero[];
   onCreado: () => void; onCancelar: () => void;
 }) {
-  const [nombre,    setNombre]    = useState('');
   const [raza,      setRaza]      = useState(RAZAS[0]);
   const [sexo,      setSexo]      = useState(SEXOS[0]);
   const [cat,       setCat]       = useState<'Levante'|'Ceba'|'Cría'>('Ceba');
@@ -85,11 +85,10 @@ function CrearAnimalForm({
   const [err,       setErr]       = useState<string|null>(null);
 
   const handleGuardar = async () => {
-    if (!nombre.trim()) { setErr('Nombre requerido'); return; }
     setSaving(true); setErr(null);
     const { error } = await registrarCompraAnimal({
       finca_id: fincaId, potrero_id: potreroId || null,
-      nombre: nombre.trim(), arete, raza, sexo, categoria: cat,
+      nombre: '', arete, raza, sexo, categoria: cat,
       peso_kg: pesoKg ? parseFloat(pesoKg) : null,
       origen, proveedor: origen === 'comprado' ? (proveedor.trim() || null) : null,
       fecha: new Date().toISOString().slice(0, 10),
@@ -121,10 +120,6 @@ function CrearAnimalForm({
         </div>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <div>
-          <label style={lbl}>NOMBRE</label>
-          <input style={inp} value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej: Capitán" autoFocus />
-        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div><label style={lbl}>RAZA</label>
             <select style={inp} value={raza} onChange={e => setRaza(e.target.value)}>
@@ -196,11 +191,12 @@ function AnimalCard({ animal, onReset, onRegister }: {
     <div className="animate-up" style={{ width: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
         <div style={{ width: 52, height: 52, borderRadius: '50%', background: cat.soft, border: `1.5px solid ${cat.hex}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: 23, color: cat.hex, flexShrink: 0 }}>
-          {animal.nombre.charAt(0)}
+          <AreteIcon color={cat.hex} size={28} />
         </div>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 23, lineHeight: 1 }}>{animal.nombre}</div>
-          <div style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 15, color: '#3A4D3A', marginTop: 4 }}>{animal.arete} · {animal.raza}</div>
+          <div style={{ fontSize: 14, color: '#3A4D3A', fontWeight: 700, letterSpacing: '.5px' }}>ARETE</div>
+          <div style={{ fontWeight: 800, fontSize: 26, lineHeight: 1.05 }}>{animal.arete}</div>
+          <div style={{ fontSize: 15, color: '#3A4D3A', marginTop: 4 }}>{animal.raza} · {animal.cat}</div>
         </div>
       </div>
 
@@ -255,7 +251,7 @@ function RecentList({ recent }: { recent: typeof RFID_RECENT }) {
         {recent.map((r, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderTop: i > 0 ? '1px solid #EDF1EA' : 'none' }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: ESTADO[r.estado].hex, flexShrink: 0, display: 'block' }}/>
-            <span style={{ flex: 1, fontSize: 17, fontWeight: 600 }}>{r.nombre} <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 14, color: '#4A5E4A', fontWeight: 500 }}>{r.id}</span></span>
+            <span style={{ flex: 1, fontSize: 17, fontWeight: 600 }}>Arete {r.id}</span>
             <span style={{ fontFamily: 'var(--font-jetbrains)', fontSize: 17, fontWeight: 700 }}>{r.peso} kg</span>
           </div>
         ))}
@@ -290,7 +286,7 @@ export default function RfidScreen({ onOpenDrawer, animals, fincaId, potreros = 
 
   const handleRegister = () => {
     if (!foundAnimal) return;
-    setRecent(prev => [{ nombre: foundAnimal.nombre, id: foundAnimal.arete, peso: foundAnimal.peso, estado: foundAnimal.estado }, ...prev.slice(0, 4)]);
+    setRecent(prev => [{ id: foundAnimal.arete, peso: foundAnimal.peso, estado: foundAnimal.estado }, ...prev.slice(0, 4)]);
     onRegistrarPesaje?.(foundAnimal, foundAnimal.peso);
     setFoundAnimal(null);
     setNotFound(null);
