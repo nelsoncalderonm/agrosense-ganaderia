@@ -8,6 +8,7 @@ import {
   getAlertas, getEventos, getProveedores, getClientes, getGastos, getMovimientos,
   getVacunaciones, getNacimientos, getBajas, getMembresiasFinca,
   getMisMembresias, getIsSuperadmin, getMiOnboardingPendiente, DbOrgOnboarding, getRetiros,
+  getEstadoSuscripcion, EstadoSuscripcion,
   DbRetiro, DbFinca, DbPotrero, DbAnimal, DbAlerta, DbEvento, DbProveedor, DbCliente, DbGasto, DbMovimiento, DbMembresia,
   DbVacunacion, DbNacimiento, DbBaja,
 } from '@/lib/supabase';
@@ -179,6 +180,15 @@ export default function AgroSenseApp() {
   const [retirosServidor, setRetiros] = useState<DbRetiro[]>([]);
 
   const currentFinca = fincas[fincaIdx];
+
+  // Suscripción de Hotmart: aviso si el pago está atrasado, pantalla de renovar si se canceló.
+  const [estadoSus, setEstadoSus] = useState<EstadoSuscripcion | null>(null);
+  useEffect(() => {
+    if (!currentFinca?.id || sinRed()) return;
+    let vivo = true;
+    void getEstadoSuscripcion(currentFinca.id).then(e => { if (vivo) setEstadoSus(e); });
+    return () => { vivo = false; };
+  }, [currentFinca?.id, recarga]);
   const sync = useSincronizacion();
   // Lo registrado sin señal se ve de inmediato (animales nuevos, pesos, vendidos fuera).
   const animales = currentFinca ? aplicarPendientes(animalesServidor, sync.pendientes, currentFinca.id) : animalesServidor;
@@ -382,6 +392,10 @@ export default function AgroSenseApp() {
     );
   }
 
+  if (estadoSus === 'cancelada' || estadoSus === 'reembolsada') {
+    return <SuscripcionVencida email={session.user.email ?? ''} onSalir={handleSignOut} />;
+  }
+
   return (
     <div className="ag-shell" style={{ minHeight:'100vh', display:'flex', flexDirection:'column', background:'#EEF2EC', position:'relative' }}>
       {/* Desktop sidebar (≥1024px) — bottom tab bar + hamburger hide at that breakpoint */}
@@ -402,6 +416,7 @@ export default function AgroSenseApp() {
       {/* Screen content */}
       <div className="ag-main" style={{ flex:1, display:'flex', flexDirection:'column' }}>
       <EstadoSenal sync={sync} fincaId={currentFinca?.id} />
+      {estadoSus === 'atrasada' && <AvisoPagoAtrasado />}
       {copiaDel && !sync.enLinea && (
         <div style={{ fontFamily:'var(--font-jetbrains)', fontSize:14, color:'#3A4D3A', padding:'4px 16px', background:'#F7FAF6', borderBottom:'1px solid #B9C6B4' }}>
           Mostrando datos guardados el {new Date(copiaDel).toLocaleString('es-CO', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}
@@ -599,6 +614,38 @@ export default function AgroSenseApp() {
           />
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------- Suscripción (Hotmart) ----------
+
+const URL_RENOVAR = process.env.NEXT_PUBLIC_HOTMART_CHECKOUT_URL || '';
+const URL_PAGOS_HOTMART = 'https://consumer.hotmart.com/';
+
+function AvisoPagoAtrasado() {
+  return (
+    <a href={URL_PAGOS_HOTMART} target="_blank" rel="noreferrer" style={{ display:'block', padding:'10px 16px', background:'#FFF3C4', borderBottom:'2px solid #B07D00', color:'#3D2B00', fontWeight:700, fontSize:16, textDecoration:'none' }}>
+      Tu pago de este mes no pasó. Toca aquí para actualizar la tarjeta y no perder el acceso.
+    </a>
+  );
+}
+
+function SuscripcionVencida({ email, onSalir }: { email: string; onSalir: () => void }) {
+  return (
+    <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#EEF2EC', padding:20 }}>
+      <div style={{ textAlign:'center', maxWidth:360 }}>
+        <div style={{ fontWeight:800, fontSize:24, marginBottom:10 }}>Tu suscripción terminó</div>
+        <div style={{ fontSize:18, color:'#2A3A2A', marginBottom:20, lineHeight:1.4 }}>
+          Tus animales y registros siguen guardados. Renueva para volver a entrar con tu misma cuenta ({email}).
+        </div>
+        {URL_RENOVAR && (
+          <a href={URL_RENOVAR} target="_blank" rel="noreferrer" style={{ display:'block', height:54, lineHeight:'54px', borderRadius:6, background:'#2F6B2F', color:'#fff', fontWeight:800, fontSize:20, textDecoration:'none', marginBottom:12 }}>
+            Renovar suscripción
+          </a>
+        )}
+        <button onClick={onSalir} style={{ width:'100%', height:48, border:'1px solid #8FA38A', borderRadius:6, background:'#fff', color:'#3A5A3A', fontWeight:700, fontSize:18, cursor:'pointer' }}>Cerrar sesión</button>
+      </div>
     </div>
   );
 }

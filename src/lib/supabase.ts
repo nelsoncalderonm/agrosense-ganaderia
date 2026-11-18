@@ -467,6 +467,15 @@ export async function getFincasDeOrganizacion(org_id: string): Promise<DbFinca[]
   return (data ?? []) as DbFinca[];
 }
 
+export type EstadoSuscripcion = 'pendiente' | 'activa' | 'atrasada' | 'cancelada' | 'reembolsada';
+
+/** Estado de la suscripción de la finca (null = sin suscripción o superadmin: no se bloquea). */
+export async function getEstadoSuscripcion(finca_id: string): Promise<EstadoSuscripcion | null> {
+  const { data, error } = await supabase.rpc('estado_suscripcion_finca', { p_finca_id: finca_id });
+  if (error) return null;
+  return (data ?? null) as EstadoSuscripcion | null;
+}
+
 export async function getPlanes(): Promise<DbPlan[]> {
   const { data } = await supabase.from('planes').select('id, codigo, nombre, max_fincas, max_animales').eq('activo', true).order('nombre');
   return (data ?? []) as DbPlan[];

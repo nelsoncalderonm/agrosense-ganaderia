@@ -32,6 +32,10 @@ function hottokValido(recibido: string | null | undefined): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+function normalizar(t: string): string {
+  return t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+}
+
 function fecha(ms: unknown): string | null {
   const n = typeof ms === 'string' ? Number(ms) : ms;
   return typeof n === 'number' && Number.isFinite(n) && n > 0 ? new Date(n).toISOString() : null;
@@ -48,7 +52,8 @@ function extraer(p: Payload) {
     nombre: (buyer.name ?? subscriber.name ?? '').trim() as string,
     telefono: (buyer.checkout_phone ?? buyer.phone ?? subscriber.phone ?? null) as string | null,
     productId: d.product?.id != null ? String(d.product.id) : null,
-    planCodigo: d.subscription?.plan?.name ?? d.subscription?.plan?.id ?? null,
+    planNombre: (d.subscription?.plan?.name ?? null) as string | null,
+    planId: d.subscription?.plan?.id != null ? String(d.subscription.plan.id) : null,
     transaccion,
     // Clave estable de la suscripción. Una compra sin recurrencia usa su transacción.
     clave: subscriberCode ?? (transaccion ? `tx:${transaccion}` : null),
@@ -105,8 +110,10 @@ async function procesar(admin: ReturnType<typeof getSupabaseAdmin>, evento: stri
     const { data: planes } = await admin.from('planes').select('id, hotmart_plan_codigo')
       .eq('hotmart_product_id', x.productId).eq('activo', true);
     const lista = (planes ?? []) as { id: string; hotmart_plan_codigo: string | null }[];
-    planId = (lista.find(p => p.hotmart_plan_codigo && x.planCodigo && p.hotmart_plan_codigo === String(x.planCodigo))
-      ?? lista.find(p => !p.hotmart_plan_codigo) ?? lista[0])?.id ?? null;
+    // El plan de Hotmart se reconoce por su nombre (sin importar mayúsculas ni tildes) o por su id.
+    const buscados = [x.planNombre, x.planId].filter(Boolean).map(v => normalizar(String(v)));
+    planId = (lista.find(p => p.hotmart_plan_codigo && buscados.includes(normalizar(p.hotmart_plan_codigo)))
+      ?? lista.find(p => !p.hotmart_plan_codigo) ?? (lista.length === 1 ? lista[0] : undefined))?.id ?? null;
   }
 
   const { data: existente } = await admin.from('suscripciones')
